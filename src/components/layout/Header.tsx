@@ -1,16 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Calculator, BookOpen, GraduationCap, CreditCard, Shield } from "lucide-react";
+import { Menu, X, Calculator, BookOpen, GraduationCap, CreditCard, Shield, Wallet, Receipt, TrendingUp, Scale, Heart, Landmark, Award, PiggyBank, Target, Clock, BarChart3, AlertCircle, Home, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 
+const calculatorSections = [
+  {
+    title: "Salary & Tax Tools",
+    calculators: [
+      { name: "In-Hand Salary", href: "/calculator/in-hand-salary", icon: Wallet },
+      { name: "Tax Regime Picker", href: "/calculator/tax-regime", icon: Receipt },
+      { name: "Salary Growth Tracker", href: "/calculator/salary-growth", icon: TrendingUp },
+      { name: "Offer Analyzer", href: "/calculator/offer-analyzer", icon: Scale },
+    ],
+  },
+  {
+    title: "Protection Planning",
+    calculators: [
+      { name: "Life Cover Estimator", href: "/insurance", icon: Shield },
+      { name: "Medical Cover Planner", href: "/insurance", icon: Heart },
+    ],
+  },
+  {
+    title: "Wealth Builders",
+    calculators: [
+      { name: "EPF Accumulator", href: "/calculator/epf", icon: Landmark },
+      { name: "Gratuity Estimator", href: "/calculator/gratuity", icon: Award },
+      { name: "NPS Wealth Builder", href: "/calculator/nps", icon: PiggyBank },
+      { name: "Retirement Mapper", href: "/calculator/retirement", icon: Target },
+      { name: "SIP Growth Calculator", href: "/calculator/sip", icon: TrendingUp },
+    ],
+  },
+  {
+    title: "Smart Decisions",
+    calculators: [
+      { name: "Rent vs Own Analyzer", href: "/calculator/rent-vs-own", icon: Home },
+    ],
+  },
+];
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < 100) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        setIsVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   const navLinks = [
-    { name: "Calculator", href: "/calculator/in-hand-salary", icon: Calculator },
     { name: "Credit Score", href: "/creditscore", icon: CreditCard },
     { name: "Insurance", href: "/insurance", icon: Shield },
     { name: "Blog", href: "#blog", icon: BookOpen },
@@ -18,7 +74,11 @@ const Header = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header 
+      className={`fixed top-0 left-0 right-0 z-[100] w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 ${
+        isVisible ? 'translate-y-0' : '-translate-y-full'
+      }`}
+    >
       <nav className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
@@ -31,6 +91,65 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden items-center gap-1 md:flex">
+          {/* Calculator Dropdown */}
+          <div 
+            className="relative"
+            onMouseEnter={() => setIsCalculatorOpen(true)}
+            onMouseLeave={() => setIsCalculatorOpen(false)}
+          >
+            <button
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+            >
+              <Calculator className="h-4 w-4" />
+              Calculator
+              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isCalculatorOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Dropdown Menu */}
+            {isCalculatorOpen && (
+              <div 
+                className="absolute top-full left-0 pt-2 w-[600px] z-50"
+                onMouseEnter={() => setIsCalculatorOpen(true)}
+                onMouseLeave={() => setIsCalculatorOpen(false)}
+              >
+                <div className="bg-popover border border-border rounded-lg shadow-lg p-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    {calculatorSections.map((section, idx) => (
+                      <div key={idx} className="space-y-3">
+                        <h3 className="text-sm font-semibold text-foreground border-b border-border pb-2">
+                          {section.title}
+                        </h3>
+                        <div className="space-y-1">
+                          {section.calculators.map((calc) => (
+                            <Link
+                              key={calc.name}
+                              href={calc.href}
+                              className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors group cursor-pointer"
+                              onClick={() => setIsCalculatorOpen(false)}
+                            >
+                              <calc.icon className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                              <span>{calc.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <Link
+                      href="/calculator/in-hand-salary"
+                      className="text-sm font-medium text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      onClick={() => setIsCalculatorOpen(false)}
+                    >
+                      View All Calculators
+                      <ChevronDown className="h-3 w-3 rotate-[-90deg]" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {navLinks.map((link) => (
             <a
               key={link.name}
@@ -65,6 +184,32 @@ const Header = () => {
       {isMenuOpen && (
         <div className="border-t border-border bg-background md:hidden animate-fade-in">
           <div className="container py-4 space-y-2">
+            {/* Calculator Section in Mobile */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-foreground">
+                <Calculator className="h-5 w-5 text-primary" />
+                Calculators
+              </div>
+              {calculatorSections.map((section, idx) => (
+                <div key={idx} className="pl-8 space-y-1">
+                  <div className="text-xs font-medium text-muted-foreground px-4 py-1">
+                    {section.title}
+                  </div>
+                  {section.calculators.map((calc) => (
+                    <Link
+                      key={calc.name}
+                      href={calc.href}
+                      className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <calc.icon className="h-4 w-4 text-primary" />
+                      {calc.name}
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+            
             {navLinks.map((link) => (
               <a
                 key={link.name}

@@ -158,7 +158,7 @@ const CalculatorPromo = () => {
                 asChild
               >
                 <Link href="/calculator/sip">
-                  Explore Calculators
+                  Get Started
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>

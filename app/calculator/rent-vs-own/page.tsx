@@ -33,7 +33,7 @@ export default function RentVsOwnCalculator() {
     const price = parseFloat(homePrice);
     const down = parseFloat(downPayment);
     const tenure = parseInt(loanTenure);
-    const rate = parseFloat(interestRate) / 100 / 12; // Monthly rate
+    const rate = parseFloat(interestRate) / 100 / 12;
     const rent = parseFloat(monthlyRent);
     const rentInc = parseFloat(rentIncrease) / 100;
     const propApp = parseFloat(propertyAppreciation) / 100;
@@ -46,15 +46,12 @@ export default function RentVsOwnCalculator() {
     const loanAmount = price - down;
     const months = tenure * 12;
 
-    // Calculate EMI
     const emi = (loanAmount * rate * Math.pow(1 + rate, months)) / (Math.pow(1 + rate, months) - 1);
     
-    // Total cost of buying
     const totalEMI = emi * months;
     const totalCostOfBuying = down + totalEMI;
     const totalInterest = totalEMI - loanAmount;
 
-    // Total cost of renting (with annual rent increase)
     let totalRent = 0;
     let currentRent = rent;
     for (let year = 0; year < tenure; year++) {
@@ -62,10 +59,7 @@ export default function RentVsOwnCalculator() {
       currentRent *= (1 + rentInc);
     }
 
-    // Property value after tenure (with appreciation)
     const propertyValueAfter = price * Math.pow(1 + propApp, tenure);
-
-    // Net savings = Property value - Total cost of buying - Total cost of renting
     const netSavings = propertyValueAfter - totalCostOfBuying - totalRent;
 
     let recommendation = "";
@@ -98,7 +92,7 @@ export default function RentVsOwnCalculator() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -118,7 +112,6 @@ export default function RentVsOwnCalculator() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Input Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Property & Financial Details</CardTitle>
@@ -204,7 +197,6 @@ export default function RentVsOwnCalculator() {
               </CardContent>
             </Card>
 
-            {/* Results Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Comparison Results</CardTitle>

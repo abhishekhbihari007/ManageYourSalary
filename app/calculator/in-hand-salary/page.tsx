@@ -44,28 +44,27 @@ export default function InHandSalaryCalculator() {
     const hraPercent = parseFloat(hraPercentage) / 100;
     const ageValue = parseInt(age);
 
-    // Calculate components
     const basicSalary = ctcValue * basicPercent;
-    const hra = Math.min(basicSalary * hraPercent, basicSalary * 0.5); // HRA is min of 50% of basic or actual
+    const hra = Math.min(basicSalary * hraPercent, basicSalary * 0.5);
     const specialAllowance = ctcValue - basicSalary - hra;
 
-    // EPF calculations (12% of basic, capped at 1800 per month)
     const pfEmployee = Math.min(basicSalary * 0.12, 1800 * 12);
     const pfEmployer = Math.min(basicSalary * 0.12, 1800 * 12);
 
-    // ESIC (0.75% of gross if gross <= 21000, else 0)
     const grossSalary = basicSalary + hra + specialAllowance;
     const esic = grossSalary <= 21000 * 12 ? grossSalary * 0.0075 : 0;
 
-    // Professional Tax (varies by state, using average 200/month)
-    const professionalTax = 200 * 12;
+    const professionalTax = 200 * 12; // avg across states
 
-    // Income Tax calculation (simplified)
-    const taxableIncome = grossSalary - hra - pfEmployee - professionalTax;
+    const hraExemption = Math.min(hra, basicSalary * 0.5);
+
+    let taxableIncome = 0;
     let incomeTax = 0;
 
     if (taxRegime === "new") {
-      // New tax regime slabs (FY 2024-25)
+      const standardDeduction = 75000;
+      taxableIncome = Math.max(0, grossSalary - standardDeduction - pfEmployee - professionalTax);
+      
       if (taxableIncome > 1500000) {
         incomeTax = (taxableIncome - 1500000) * 0.30 + 150000;
       } else if (taxableIncome > 1200000) {
@@ -80,23 +79,21 @@ export default function InHandSalaryCalculator() {
         incomeTax = (taxableIncome - 300000) * 0.05;
       }
     } else {
-      // Old tax regime with deductions
       const standardDeduction = 50000;
-      const section80C = Math.min(150000, grossSalary * 0.3); // Assuming max 80C
-      const section80D = ageValue < 60 ? 25000 : 50000; // Health insurance
-      const taxableIncomeOld = Math.max(0, taxableIncome - standardDeduction - section80C - section80D);
+      const section80C = Math.min(150000, grossSalary * 0.3);
+      const section80D = ageValue < 60 ? 25000 : 50000;
+      taxableIncome = Math.max(0, grossSalary - standardDeduction - hraExemption - pfEmployee - professionalTax - section80C - section80D);
 
-      if (taxableIncomeOld > 1000000) {
-        incomeTax = (taxableIncomeOld - 1000000) * 0.30 + 112500;
-      } else if (taxableIncomeOld > 500000) {
-        incomeTax = (taxableIncomeOld - 500000) * 0.20 + 12500;
-      } else if (taxableIncomeOld > 250000) {
-        incomeTax = (taxableIncomeOld - 250000) * 0.05;
+      if (taxableIncome > 1000000) {
+        incomeTax = (taxableIncome - 1000000) * 0.30 + 112500;
+      } else if (taxableIncome > 500000) {
+        incomeTax = (taxableIncome - 500000) * 0.20 + 12500;
+      } else if (taxableIncome > 250000) {
+        incomeTax = (taxableIncome - 250000) * 0.05;
       }
     }
 
-    // Add cess (4% of income tax)
-    incomeTax = incomeTax * 1.04;
+    incomeTax = incomeTax * 1.04; // cess
 
     const totalDeductions = pfEmployee + esic + professionalTax + incomeTax;
     const netSalary = grossSalary - totalDeductions;
@@ -128,15 +125,13 @@ export default function InHandSalaryCalculator() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
-          {/* Back Button */}
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
             Back to Home
           </Link>
 
-          {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -150,7 +145,6 @@ export default function InHandSalaryCalculator() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Input Form */}
             <Card>
               <CardHeader>
                 <CardTitle>Enter Your Details</CardTitle>
@@ -223,7 +217,6 @@ export default function InHandSalaryCalculator() {
               </CardContent>
             </Card>
 
-            {/* Results */}
             {result && (
               <Card>
                 <CardHeader>

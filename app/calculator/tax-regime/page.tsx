@@ -12,7 +12,7 @@ import Footer from "@/components/layout/Footer";
 
 export default function TaxRegimePicker() {
   const [annualIncome, setAnnualIncome] = useState<string>("");
-  const [deductions, setDeductions] = useState<string>("150000"); // 80C, 80D, etc.
+  const [deductions, setDeductions] = useState<string>("150000");
   const [result, setResult] = useState<{
     oldRegime: { taxable: number; tax: number; afterTax: number };
     newRegime: { taxable: number; tax: number; afterTax: number };
@@ -28,7 +28,6 @@ export default function TaxRegimePicker() {
       return;
     }
 
-    // Old Regime Calculation
     const standardDeductionOld = 50000;
     const taxableOld = Math.max(0, income - standardDeductionOld - deductionsValue);
     let taxOld = 0;
@@ -40,9 +39,8 @@ export default function TaxRegimePicker() {
     } else if (taxableOld > 250000) {
       taxOld = (taxableOld - 250000) * 0.05;
     }
-    taxOld = taxOld * 1.04; // Add cess
+    taxOld = taxOld * 1.04;
 
-    // New Regime Calculation
     const standardDeductionNew = 75000;
     const taxableNew = Math.max(0, income - standardDeductionNew);
     let taxNew = 0;
@@ -60,7 +58,7 @@ export default function TaxRegimePicker() {
     } else if (taxableNew > 300000) {
       taxNew = (taxableNew - 300000) * 0.05;
     }
-    taxNew = taxNew * 1.04; // Add cess
+    taxNew = taxNew * 1.04;
 
     const recommendation = taxNew < taxOld ? "New Regime" : "Old Regime";
 
@@ -90,7 +88,7 @@ export default function TaxRegimePicker() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />

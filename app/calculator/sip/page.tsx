@@ -23,7 +23,7 @@ export default function SIPCalculator() {
 
   const calculateSIP = () => {
     const monthly = parseFloat(monthlyInvestment);
-    const rate = parseFloat(annualReturn) / 100 / 12; // Monthly rate
+    const rate = parseFloat(annualReturn) / 100 / 12;
     const months = parseInt(years) * 12;
 
     if (!monthly || !rate || !months || monthly <= 0 || months <= 0) {
@@ -31,12 +31,10 @@ export default function SIPCalculator() {
       return;
     }
 
-    // SIP formula: M * [((1 + r)^n - 1) / r] * (1 + r)
     const totalInvested = monthly * months;
     const futureValue = monthly * (((Math.pow(1 + rate, months) - 1) / rate) * (1 + rate));
     const estimatedReturns = futureValue - totalInvested;
 
-    // Generate monthly breakdown (sample every 12 months)
     const monthlyBreakdown = [];
     for (let i = 12; i <= months; i += 12) {
       const value = monthly * (((Math.pow(1 + rate, i) - 1) / rate) * (1 + rate));
@@ -66,7 +64,7 @@ export default function SIPCalculator() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />

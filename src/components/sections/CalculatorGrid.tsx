@@ -203,22 +203,6 @@ const CalculatorGrid = () => {
             </div>
           </div>
         ))}
-
-        {/* View All Link */}
-        <div className="mt-10 text-center">
-          <a
-            href="#calculators"
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline group"
-            onClick={(e) => {
-              e.preventDefault();
-              // Scroll to calculators section (already on page)
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            Explore all {categories.reduce((sum, cat) => sum + cat.calculators.length, 0)}+ calculators
-            <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </a>
-        </div>
       </div>
     </section>
   );

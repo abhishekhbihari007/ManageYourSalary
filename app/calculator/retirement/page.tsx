@@ -40,19 +40,16 @@ export default function RetirementCalculator() {
     const yearsToRetirement = retire - age;
     const monthsToRetirement = yearsToRetirement * 12;
 
-    // Calculate corpus at retirement
     let corpus = savings;
     for (let i = 0; i < monthsToRetirement; i++) {
       corpus = corpus * (1 + returnRate) + monthly;
     }
 
-    // Estimate monthly expense at retirement (assuming current expense = monthly savings * 2)
     const currentMonthlyExpense = monthly * 2;
     const futureMonthlyExpense = currentMonthlyExpense * Math.pow(1 + inflationRate, yearsToRetirement);
 
-    // Calculate corpus needed (assuming 30 years post-retirement, 4% withdrawal rate)
     const annualExpense = futureMonthlyExpense * 12;
-    const corpusNeeded = annualExpense / 0.04; // 4% safe withdrawal rate
+    const corpusNeeded = annualExpense / 0.04;
 
     const shortfall = Math.max(0, corpusNeeded - corpus);
 
@@ -75,7 +72,7 @@ export default function RetirementCalculator() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />

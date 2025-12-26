@@ -37,18 +37,34 @@ export default function OfferAnalyzer() {
     const hra = Math.min(basic * (offer.hraPercentage / 100), basic * 0.5);
     const specialAllowance = offer.ctc - basic - hra;
     
-    // Deductions
-    const pfEmployee = Math.min(basic * 0.12, 1800);
-    const pfEmployer = Math.min(basic * 0.12, 1800);
-    const esic = offer.ctc <= 21000 ? offer.ctc * 0.0075 : 0;
-    const professionalTax = 200;
+    const pfEmployee = Math.min(basic * 0.12, 1800 * 12);
+    const pfEmployer = Math.min(basic * 0.12, 1800 * 12);
+    const monthlyGross = offer.ctc / 12;
+    const esic = monthlyGross <= 21000 ? offer.ctc * 0.0075 : 0;
+    const professionalTax = 200 * 12;
     
-    // Tax calculation (simplified)
-    const taxableIncome = basic + hra + specialAllowance - pfEmployee - esic - professionalTax;
-    const tax = Math.max(0, (taxableIncome - 500000) * 0.2);
+    const grossSalary = basic + hra + specialAllowance;
+    const standardDeduction = 75000;
+    const taxableIncome = Math.max(0, grossSalary - standardDeduction - pfEmployee - esic - professionalTax);
+    let tax = 0;
+    
+    if (taxableIncome > 1500000) {
+      tax = (taxableIncome - 1500000) * 0.30 + 150000;
+    } else if (taxableIncome > 1200000) {
+      tax = (taxableIncome - 1200000) * 0.20 + 90000;
+    } else if (taxableIncome > 900000) {
+      tax = (taxableIncome - 900000) * 0.15 + 45000;
+    } else if (taxableIncome > 700000) {
+      tax = (taxableIncome - 700000) * 0.10 + 25000;
+    } else if (taxableIncome > 500000) {
+      tax = (taxableIncome - 500000) * 0.05 + 12500;
+    } else if (taxableIncome > 300000) {
+      tax = (taxableIncome - 300000) * 0.05;
+    }
+    tax = tax * 1.04;
     
     const inHand = taxableIncome - tax;
-    const totalValue = offer.ctc + offer.variablePay + offer.joiningBonus + (offer.esop * 0.1); // ESOP estimated at 10% value
+    const totalValue = offer.ctc + offer.variablePay + offer.joiningBonus + (offer.esop * 0.1);
     
     return { inHand, totalValue };
   };
@@ -88,7 +104,7 @@ export default function OfferAnalyzer() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -189,7 +205,6 @@ export default function OfferAnalyzer() {
               </CardContent>
             </Card>
 
-            {/* Results Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Comparison Results</CardTitle>

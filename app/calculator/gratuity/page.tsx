@@ -27,11 +27,8 @@ export default function GratuityCalculator() {
       return;
     }
 
-    // Gratuity = (Last drawn salary × 15/26) × Years of service
-    // For 5+ years of service
     if (years >= 5) {
       const gratuity = (salary / 26) * 15 * years;
-      // Maximum gratuity is capped at ₹20 lakhs
       const finalGratuity = Math.min(gratuity, 2000000);
       setResult({
         gratuity: finalGratuity,
@@ -54,7 +51,7 @@ export default function GratuityCalculator() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />

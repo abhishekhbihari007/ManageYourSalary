@@ -30,9 +30,9 @@ const HeroSection = () => {
         <div className="mx-auto max-w-4xl text-center w-full">
           <h1 className="mb-4 font-heading text-4xl font-extrabold tracking-tight text-white md:text-5xl lg:text-6xl">
             <span className="inline-block animate-fade-up" style={{ animationDelay: "0.1s" }}>
-              Take Control of{" "}
+              Take Control of
             </span>
-            <span className="relative inline-block animate-fade-up" style={{ animationDelay: "0.2s" }}>
+            <span className="relative inline-block animate-fade-up" style={{ animationDelay: "0.2s", marginLeft: "0.25em" }}>
               <span className="relative z-10 text-accent">Every Rupee</span>
               <span className="absolute -bottom-1 left-0 h-3 w-full bg-accent/30 -rotate-1 rounded animate-pulse" />
             </span>{" "}
@@ -109,7 +109,7 @@ const HeroSection = () => {
 
           <div className="mt-10 grid grid-cols-3 gap-4 sm:gap-8 animate-fade-up" style={{ animationDelay: "0.7s" }}>
             {[
-              { value: "15+", label: "Free Calculators", growth: "All tools available" },
+              { value: "10", label: "Free Calculators", growth: "All tools available" },
               { value: "Zero", label: "Signup Required", growth: "Start instantly" },
               { value: "Instant", label: "Results", growth: "Real-time calculations" },
             ].map((stat, index) => (

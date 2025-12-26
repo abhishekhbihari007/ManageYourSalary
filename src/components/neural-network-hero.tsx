@@ -9,12 +9,9 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 
-// Only register plugins if needed (SplitText is only used in Hero component)
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(SplitText, useGSAP);
 }
-
-// ===================== SHADER =====================
 const vertexShader = `
   varying vec2 vUv;
   void main() {

@@ -11,7 +11,6 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 export default function NPSCalculator() {
-  const [monthlyContribution, setMonthlyContribution] = useState<string>("5000");
   const [employeeContribution, setEmployeeContribution] = useState<string>("5000");
   const [employerContribution, setEmployerContribution] = useState<string>("5000");
   const [currentAge, setCurrentAge] = useState<string>("30");
@@ -27,15 +26,14 @@ export default function NPSCalculator() {
   } | null>(null);
 
   const calculateNPS = () => {
-    const monthly = parseFloat(monthlyContribution);
     const empCont = parseFloat(employeeContribution);
     const empContEmployer = parseFloat(employerContribution);
     const age = parseInt(currentAge);
     const retireAge = parseInt(retirementAge);
-    const rate = parseFloat(expectedReturn) / 100 / 12; // Monthly rate
+    const rate = parseFloat(expectedReturn) / 100 / 12;
     const months = (retireAge - age) * 12;
 
-    if (!monthly || !age || !retireAge || months <= 0) {
+    if (!empCont || !age || !retireAge || months <= 0 || age >= retireAge) {
       alert("Please enter valid values");
       return;
     }
@@ -43,7 +41,6 @@ export default function NPSCalculator() {
     const totalMonthly = empCont + empContEmployer;
     const totalContributed = totalMonthly * months;
     
-    // NPS corpus calculation
     let corpus = 0;
     for (let i = 0; i < months; i++) {
       corpus = (corpus + totalMonthly) * (1 + rate);
@@ -51,11 +48,8 @@ export default function NPSCalculator() {
     
     const estimatedReturns = corpus - totalContributed;
     
-    // At retirement: 60% lump sum, 40% annuity
     const lumpSum = corpus * 0.6;
     const annuity = corpus * 0.4;
-    
-    // Monthly pension from annuity (assuming 6% annuity rate)
     const monthlyPension = (annuity * 0.06) / 12;
 
     setResult({
@@ -79,7 +73,7 @@ export default function NPSCalculator() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -99,7 +93,6 @@ export default function NPSCalculator() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Input Section */}
             <Card>
               <CardHeader>
                 <CardTitle>NPS Contribution Details</CardTitle>
@@ -166,7 +159,6 @@ export default function NPSCalculator() {
               </CardContent>
             </Card>
 
-            {/* Results Section */}
             <Card>
               <CardHeader>
                 <CardTitle>NPS Projection</CardTitle>

@@ -36,14 +36,13 @@ export default function EPFCalculator() {
 
     const years = retirement - current;
     const monthlyBasic = basic / 12;
-    const employeeContribution = Math.min(monthlyBasic * 0.12, 1800); // 12% capped at 1800
+    const employeeContribution = Math.min(monthlyBasic * 0.12, 1800);
     const employerContribution = Math.min(monthlyBasic * 0.12, 1800);
     const monthlyContribution = employeeContribution + employerContribution;
     const annualContribution = monthlyContribution * 12;
     const totalContribution = annualContribution * years;
 
-    // EPF interest rate (assumed 8.5% annually, compounded monthly)
-    const monthlyRate = 0.085 / 12;
+    const monthlyRate = 0.0825 / 12; // 8.25% for FY 2024-25
     let finalBalance = balance;
     const yearlyBreakdown = [];
 
@@ -79,7 +78,7 @@ export default function EPFCalculator() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
