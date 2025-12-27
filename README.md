@@ -4,7 +4,7 @@ A comprehensive salary management and financial planning platform designed speci
 
 ## 🚀 Features
 
-### 10 Free Financial Calculators
+### 12 Free Financial Calculators
 
 1. **In-Hand Salary Calculator** - Calculate your take-home salary after all deductions (EPF, ESIC, taxes)
 2. **Tax Regime Picker** - Compare old vs new tax regime and find the best option for you
@@ -15,7 +15,9 @@ A comprehensive salary management and financial planning platform designed speci
 7. **NPS Wealth Builder** - Plan your National Pension System contributions
 8. **Retirement Planner** - Chart your path to financial freedom
 9. **SIP Growth Calculator** - See the power of consistent investing
-10. **Rent vs Own Analyzer** - Make informed decisions about buying vs renting
+10. **RD Calculator** - Calculate your Recurring Deposit maturity amount and returns
+11. **FD Calculator** - Calculate your Fixed Deposit maturity amount with compound interest
+12. **Rent vs Own Analyzer** - Make informed decisions about buying vs renting
 
 ### Key Highlights
 
@@ -89,6 +91,8 @@ All calculators are fully functional and updated with current government policie
 
 ### Investment Calculators
 - SIP calculator with compound interest
+- RD calculator with monthly deposit calculations
+- FD calculator with quarterly/monthly/yearly compounding
 - NPS calculator (60% lump sum, 40% annuity)
 - Retirement planning with inflation adjustment
 - Rent vs Own analysis with EMI calculations
@@ -136,8 +140,19 @@ This project can be deployed to any platform that supports Next.js:
 
 No environment variables required for basic functionality.
 
+## 🎯 Project Milestones
+
+See [MILESTONES.md](./MILESTONES.md) for detailed milestone breakdown.
+
+### Quick Status
+- ✅ **Milestone 1**: Salary & Tax Calculators - **COMPLETE** (32 tests passing)
+- 🚧 **Milestone 2**: Retirement & Investment Calculators - In Progress
+- 📋 **Milestone 3**: Smart Decision Tools & Advanced Features - Pending
+- 📋 **Milestone 4**: Production Ready & Deployment - Pending
+
 ## 📝 Recent Updates
 
+- ✅ **Milestone 1 Complete**: All 4 salary & tax calculators implemented with 32 passing tests
 - ✅ Updated all tax rates for FY 2024-25
 - ✅ Updated EPF interest rate to 8.25%
 - ✅ Fixed tax calculation logic in all calculators
@@ -146,6 +161,7 @@ No environment variables required for basic functionality.
 - ✅ Enhanced UI with 3D animations
 - ✅ Added dropdown navigation for calculators
 - ✅ Cleaned up code comments for better readability
+- ✅ Comprehensive testing framework setup (Jest + React Testing Library)
 
 ## 🤝 Contributing
 

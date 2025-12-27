@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Calculator, BookOpen, GraduationCap, CreditCard, Shield, Wallet, Receipt, TrendingUp, Scale, Heart, Landmark, Award, PiggyBank, Target, Clock, BarChart3, AlertCircle, Home, ChevronDown } from "lucide-react";
+import { Menu, X, Calculator, BookOpen, GraduationCap, CreditCard, Shield, Wallet, Receipt, TrendingUp, Scale, Heart, Landmark, Award, PiggyBank, Target, Clock, BarChart3, AlertCircle, Home, ChevronDown, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 
@@ -31,6 +31,8 @@ const calculatorSections = [
       { name: "NPS Wealth Builder", href: "/calculator/nps", icon: PiggyBank },
       { name: "Retirement Mapper", href: "/calculator/retirement", icon: Target },
       { name: "SIP Growth Calculator", href: "/calculator/sip", icon: TrendingUp },
+      { name: "RD Calculator", href: "/calculator/rd", icon: PiggyBank },
+      { name: "FD Calculator", href: "/calculator/fd", icon: Coins },
     ],
   },
   {
@@ -66,6 +68,7 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
+
   const navLinks = [
     { name: "Credit Score", href: "/creditscore", icon: CreditCard },
     { name: "Insurance", href: "/insurance", icon: Shield },
@@ -73,9 +76,10 @@ const Header = () => {
     { name: "Learn", href: "#knowledge", icon: GraduationCap },
   ];
 
+
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-[100] w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-[100] w-full border-b border-border/50 bg-white dark:bg-background transition-transform duration-300 ${
         isVisible ? 'translate-y-0' : '-translate-y-full'
       }`}
     >
@@ -164,10 +168,12 @@ const Header = () => {
 
         {/* CTA Button */}
         <div className="hidden md:block">
-          <Button size="lg" className="group">
-            Start Planning
-            <span className="transition-transform group-hover:translate-x-1">→</span>
-          </Button>
+          <Link href="/calculator/in-hand-salary">
+            <Button size="lg" className="group">
+              Start Planning
+              <span className="transition-transform group-hover:translate-x-1">→</span>
+            </Button>
+          </Link>
         </div>
 
         {/* Mobile Menu Button */}
@@ -182,7 +188,7 @@ const Header = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="border-t border-border bg-background md:hidden animate-fade-in">
+        <div className="border-t border-border bg-white dark:bg-background md:hidden animate-fade-in">
           <div className="container py-4 space-y-2">
             {/* Calculator Section in Mobile */}
             <div className="space-y-2">
@@ -222,9 +228,11 @@ const Header = () => {
               </a>
             ))}
             <div className="pt-2">
-              <Button className="w-full" size="lg">
-                Start Planning
-              </Button>
+              <Link href="/calculator/in-hand-salary" className="w-full block">
+                <Button className="w-full" size="lg">
+                  Start Planning
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

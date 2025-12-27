@@ -19,7 +19,8 @@ import {
   AlertCircle,
   ChevronRight,
   Sparkles,
-  Zap
+  Zap,
+  Coins
 } from "lucide-react";
 
 const categories = [
@@ -61,6 +62,8 @@ const categories = [
       { name: "Pension Projector", icon: Clock, description: "Estimate your monthly pension income" },
       { name: "Investment Goal Planner", icon: BarChart3, description: "Work backwards from your financial goals" },
       { name: "SIP Growth Calculator", icon: TrendingUp, description: "See the power of consistent investing" },
+      { name: "RD Calculator", icon: PiggyBank, description: "Calculate your Recurring Deposit returns" },
+      { name: "FD Calculator", icon: Coins, description: "Calculate your Fixed Deposit maturity amount" },
     ],
   },
   {
@@ -91,6 +94,8 @@ const getCalculatorLink = (name: string): string => {
     "Pension Projector": "/calculator/retirement",
     "Investment Goal Planner": "/calculator/sip",
     "SIP Growth Calculator": "/calculator/sip",
+    "RD Calculator": "/calculator/rd",
+    "FD Calculator": "/calculator/fd",
     "Safety Net Builder": "/calculator/retirement",
     "Rent vs Own Analyzer": "/calculator/rent-vs-own",
   };

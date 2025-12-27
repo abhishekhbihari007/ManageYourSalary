@@ -46,7 +46,9 @@ export default function Home() {
         <AdSlot id="ad-slot-1" />
         
         {/* Calculator Grid */}
-        <CalculatorGrid />
+        <section id="calculators">
+          <CalculatorGrid />
+        </section>
         
         {/* Interactive Calculator Promo Section */}
         <CalculatorPromo />
