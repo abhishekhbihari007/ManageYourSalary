@@ -112,9 +112,8 @@ salary-wise-main/
 
 ## 📚 Documentation
 
-- **[HANDOVER.md](./HANDOVER.md)** - Comprehensive handover documentation
-- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment guide
-- **[README.md](./README.md)** - This file
+- **[README.md](./README.md)** - Project overview and setup guide
+- **[src/utils/README.md](./src/utils/README.md)** - Detailed architecture guide for calculator utilities
 
 ## 🔒 Privacy & Security
 
