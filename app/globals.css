@@ -147,6 +147,16 @@
     @apply w-full bg-muted/50 border border-dashed border-border rounded-lg flex items-center justify-center text-muted-foreground text-sm;
     min-height: 100px;
   }
+
+  /* Ensure sticky header works across all devices */
+  header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 9999 !important;
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
 }
 
 @layer utilities {

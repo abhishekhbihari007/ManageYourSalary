@@ -12,7 +12,7 @@ import BlogPreview from "@/components/sections/BlogPreview";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col w-full overflow-x-hidden">
+    <div className="flex min-h-screen flex-col w-full">
       <Header />
       
       <main className="flex-1 w-full overflow-x-hidden">
