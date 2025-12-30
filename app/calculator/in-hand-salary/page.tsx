@@ -656,45 +656,6 @@ export default function InHandSalaryCalculator() {
                   </CardContent>
                 </Card>
 
-                {/* Mandatory Contributions */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <CardTitle>Mandatory Contributions</CardTitle>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Employee PF</span>
-                      <span className="font-semibold">{formatCurrency(result.pfEmployee)}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {pfOption === "fixed" 
-                          ? "(min(12% of Monthly Basic, ₹1,800) × 12)" 
-                          : "(12% of Monthly Basic × 12)"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Employer PF</span>
-                      <span className="font-semibold">{formatCurrency(result.pfEmployer)}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {pfOption === "fixed" 
-                          ? "(min(12% of Monthly Basic, ₹1,800) × 12)" 
-                          : "(12% of Monthly Basic × 12)"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Gratuity</span>
-                      <span className="font-semibold">{formatCurrency(result.gratuity)}</span>
-                      <span className="text-xs text-muted-foreground">(4.81% of Basic)</span>
-                    </div>
-                    <div className="pt-2 border-t flex justify-between font-semibold">
-                      <span>Total Mandatory Contributions</span>
-                      <span>{formatCurrency(result.pfEmployee + result.pfEmployer + result.gratuity)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* Income Tax Breakdown */}
                 <Card>
                   <CardHeader>
