@@ -40,8 +40,6 @@ export default function TaxRegimePicker() {
   const [hraReceived, setHraReceived] = useState<string>("");
   const [rentPaid, setRentPaid] = useState<string>("");
   const [cityType, setCityType] = useState<"metro" | "non-metro">("metro");
-  // Legacy HRA field (for backward compatibility, will be calculated)
-  const [hra, setHra] = useState<string>("0");
   const [otherDeductions, setOtherDeductions] = useState<string>("0");
   const [ageCategory, setAgeCategory] = useState<AgeCategory>("below60");
   const [taxRegime, setTaxRegime] = useState<"old" | "new">("old");
@@ -126,8 +124,8 @@ export default function TaxRegimePicker() {
     // Calculate HRA exemption using legal formula
     const hraExemption = calculateHRAExemption(basic, hraRec, rent, cityType);
     
-    // Use calculated HRA or manual input (for backward compatibility)
-    const hraValue = hraExemption > 0 ? hraExemption : (parseFloat(hra || "0") || 0);
+    // Use calculated HRA exemption
+    const hraValue = hraExemption;
     
     const otherDed = parseFloat(otherDeductions || "0") || 0;
 
@@ -451,18 +449,6 @@ export default function TaxRegimePicker() {
                         </p>
                       </div>
                     )}
-
-                    <div className="space-y-2 border-t pt-2">
-                      <Label htmlFor="hra">Or Enter HRA Exemption Manually (₹)</Label>
-                      <Input
-                        id="hra"
-                        type="text"
-                        placeholder="0"
-                        value={hra}
-                        onChange={(e) => handleNumberInput(e.target.value, setHra, "hra", false)}
-                      />
-                      <p className="text-xs text-muted-foreground">Leave empty if using calculation above</p>
-                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -504,11 +490,11 @@ export default function TaxRegimePicker() {
                 )}
 
                 <div className="flex gap-3">
-                  <Button onClick={calculateTax} className={annualIncome || section80C !== "150000" || section80D !== "0" || basicSalary || hraReceived || rentPaid || hra !== "0" || otherDeductions !== "0" ? "flex-1" : "w-full"} size="lg">
+                  <Button onClick={calculateTax} className={annualIncome || section80C !== "150000" || section80D !== "0" || basicSalary || hraReceived || rentPaid || otherDeductions !== "0" ? "flex-1" : "w-full"} size="lg">
                     <Calculator className="h-5 w-5 mr-2" />
                     Calculate Tax
                   </Button>
-                  {(annualIncome || section80C !== "150000" || section80D !== "0" || basicSalary || hraReceived || rentPaid || hra !== "0" || otherDeductions !== "0") && (
+                  {(annualIncome || section80C !== "150000" || section80D !== "0" || basicSalary || hraReceived || rentPaid || otherDeductions !== "0") && (
                     <Button 
                       onClick={() => {
                         setAnnualIncome("");
@@ -518,7 +504,6 @@ export default function TaxRegimePicker() {
                         setHraReceived("");
                         setRentPaid("");
                         setCityType("metro");
-                        setHra("0");
                         setOtherDeductions("0");
                         setAgeCategory("below60");
                         setResult(null);

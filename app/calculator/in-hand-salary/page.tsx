@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Calculator, ArrowLeft, DollarSign, Info, Lightbulb, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ArticleLinks from "@/components/sections/ArticleLinks";
-import { numberToWords } from "@/lib/utils";
+import { numberToWords } from "@/lib/numberToWords";
 
 interface SalaryBreakdown {
   grossSalary: number;
@@ -44,8 +44,8 @@ interface SalaryBreakdown {
 }
 
 export default function InHandSalaryCalculator() {
-  const [ctc, setCtc] = useState<string>("2000000");
-  const [variablePay, setVariablePay] = useState<string>("200000");
+  const [ctc, setCtc] = useState<string>("");
+  const [variablePay, setVariablePay] = useState<string>("");
   // Basic Percentage is FIXED at 50% per ET Money spec - not adjustable
   const basicPercentage = 50;
   const [hraOption, setHraOption] = useState<"40" | "50">("50");
@@ -53,14 +53,15 @@ export default function InHandSalaryCalculator() {
   const [age, setAge] = useState<string>("30");
   const [exemptionsEnabled, setExemptionsEnabled] = useState<boolean>(true);
   const [section80CInput, setSection80CInput] = useState<string>("");
-  const [pfOption, setPfOption] = useState<"actual" | "fixed">("fixed"); // PF toggle: actual 12% or fixed ₹1,800 (default fixed as per screenshot)
+  const [pfOption, setPfOption] = useState<"actual" | "fixed">("actual"); // PF toggle: actual 12% or fixed ₹1,800 (default actual - 12% of basic)
   const [result, setResult] = useState<SalaryBreakdown | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const hasCalculatedRef = useRef<boolean>(false); // Track if calculation has been done at least once
   const [viewMode, setViewMode] = useState<"monthly" | "yearly">("monthly"); // Monthly/Yearly view toggle (default monthly as per screenshot)
   const [hraExpanded, setHraExpanded] = useState<boolean>(false);
   const [epfExpanded, setEpfExpanded] = useState<boolean>(false);
   const [investmentsExpanded, setInvestmentsExpanded] = useState<boolean>(true); // Investments expanded by default like ET Money
-  const [monthlyRent, setMonthlyRent] = useState<string>("0");
+  const [monthlyRent, setMonthlyRent] = useState<string>("");
   const [annualHRA, setAnnualHRA] = useState<string>("");
 
   // Helper function to handle number-only input
@@ -107,38 +108,41 @@ export default function InHandSalaryCalculator() {
   };
 
   const calculateSalary = () => {
-    // Clear previous errors
-    setErrors({});
-    setResult(null);
+    try {
+      console.log("calculateSalary called", { ctc, variablePay, taxRegime, pfOption });
+      
+      // Clear previous errors
+      setErrors({});
+      setResult(null);
 
-    const ctcValue = parseFloat(ctc) || 0;
-    const variablePayValue = parseFloat(variablePay || "0") || 0;
-    const fixedPayValue = ctcValue - variablePayValue;
-    
-    // STRICT VALIDATION - Policy Guardrails
-    // Rule 1: CTC must be positive
-    if (!ctc || ctcValue <= 0 || isNaN(ctcValue)) {
-      setErrors(prev => ({ ...prev, ctc: "CTC must be greater than ₹0. Please enter a valid amount." }));
-      return;
-    }
+      const ctcValue = parseFloat(ctc) || 0;
+      const variablePayValue = parseFloat(variablePay || "0") || 0;
+      const fixedPayValue = ctcValue - variablePayValue;
+      
+      // STRICT VALIDATION - Policy Guardrails
+      // Rule 1: CTC must be positive
+      if (!ctc || ctcValue <= 0 || isNaN(ctcValue)) {
+        setErrors(prev => ({ ...prev, ctc: "CTC must be greater than ₹0. Please enter a valid amount." }));
+        return;
+      }
 
-    // Rule 2: Variable pay cannot be negative
-    if (variablePayValue < 0) {
-      setErrors(prev => ({ ...prev, variablePay: "Variable pay cannot be negative." }));
-      return;
-    }
+      // Rule 2: Variable pay cannot be negative
+      if (variablePayValue < 0) {
+        setErrors(prev => ({ ...prev, variablePay: "Variable pay cannot be negative." }));
+        return;
+      }
 
-    // Rule 3: Variable pay cannot exceed CTC
-    if (variablePayValue > ctcValue) {
-      setErrors(prev => ({ ...prev, variablePay: "Variable pay cannot exceed CTC. Please revise the amount." }));
-      return;
-    }
+      // Rule 3: Variable pay cannot exceed CTC
+      if (variablePayValue > ctcValue) {
+        setErrors(prev => ({ ...prev, variablePay: "Variable pay cannot exceed CTC. Please revise the amount." }));
+        return;
+      }
 
-    // Rule 4: Fixed pay must be positive
-    if (fixedPayValue <= 0) {
-      setErrors(prev => ({ ...prev, ctc: "Fixed pay (CTC - Variable Pay) must be greater than ₹0." }));
-      return;
-    }
+      // Rule 4: Fixed pay must be positive
+      if (fixedPayValue <= 0) {
+        setErrors(prev => ({ ...prev, ctc: "Fixed pay (CTC - Variable Pay) must be greater than ₹0." }));
+        return;
+      }
 
     // Real-Time Salary Portal Calculation Method (MONTHLY-FIRST APPROACH):
     // All calculations start with monthly values, then multiply by 12 for yearly
@@ -176,18 +180,20 @@ export default function InHandSalaryCalculator() {
     const monthlyGratuity = Math.round(monthlyBasic * 0.0481);
     const gratuity = monthlyGratuity * 12; // Yearly Gratuity
 
-    // Step 7: Calculate Gross Salary = CTC - Employee PF - Gratuity
-    // This is the key calculation as per real-time portal: Gross = CTC - PF - Gratuity
-    const grossSalary = Math.max(0, ctcValue - pfEmployee - gratuity);
-    const monthlyGross = grossSalary / 12; // Monthly Gross Salary
+    // Step 7: Calculate Special Allowance directly (ET Money method)
+    // ET Money: Special = CTC - Basic - HRA - Employee PF - Gratuity - Employer PF
+    const specialAllowance = Math.max(0, ctcValue - basicSalary - hra - pfEmployee - gratuity - pfEmployer);
+    const monthlySpecialAllowance = Math.round(specialAllowance / 12);
+    const specialAllowanceYearly = monthlySpecialAllowance * 12; // Recalculate yearly from rounded monthly
     
-    // Recalculate Special Allowance from Gross: Gross - Basic - HRA
-    const monthlySpecialAllowance = Math.max(0, monthlyGross - monthlyBasic - monthlyHRA);
-    const specialAllowance = monthlySpecialAllowance * 12; // Yearly Special Allowance
+    // Step 8: Calculate Gross Salary = Basic + HRA + Special Allowance (ET Money method)
+    // This is the correct Gross Salary for tax calculation
+    const grossSalary = basicSalary + hra + specialAllowanceYearly;
+    const monthlyGross = grossSalary / 12;
     
-    // Validate that Gross is sufficient for Basic + HRA
-    if (grossSalary < (basicSalary + hra)) {
-      setErrors(prev => ({ ...prev, ctc: "Gross salary is insufficient for Basic + HRA. Please increase CTC or adjust Basic percentage." }));
+    // Validate that Special Allowance is non-negative
+    if (specialAllowance < 0) {
+      setErrors(prev => ({ ...prev, ctc: "CTC is insufficient for Basic + HRA + PF + Gratuity. Please increase CTC." }));
       return;
     }
 
@@ -220,18 +226,17 @@ export default function InHandSalaryCalculator() {
     };
 
     if (taxRegime === "new") {
-      // ET Money uses ₹50,000 standard deduction for New Regime (as shown in screenshot)
-      // Note: Official rate is ₹75,000, but ET Money appears to use ₹50,000
-      standardDeduction = 50000;
+      // Standard Deduction for New Regime (FY 2024-25) - ₹75,000 (Official rate)
+      standardDeduction = 75000;
       // Taxable Income = Yearly Gross Salary - Standard Deduction
-      // ET Money does NOT subtract Employee PF for New Regime tax calculation
+      // New Regime does NOT subtract Employee PF for tax calculation
       taxableIncome = Math.max(0, grossSalary - standardDeduction);
       
-      // New Tax Regime Slabs (FY 2024-25) - ET Money exact slabs
+      // New Tax Regime Slabs (FY 2024-25) - Official Budget 2024 slabs
       // 0–3L → 0%
-      // 3–6L → 5%
-      // 6–9L → 10%
-      // 9–12L → 15%
+      // 3–7L → 5%
+      // 7–10L → 10%
+      // 10–12L → 15%
       // 12–15L → 20%
       // Above 15L → 30%
       
@@ -239,25 +244,32 @@ export default function InHandSalaryCalculator() {
       
       if (taxableIncome <= 300000) {
         taxBase = 0;
-      } else if (taxableIncome <= 600000) {
+      } else if (taxableIncome <= 700000) {
         taxBase = (taxableIncome - 300000) * 0.05;
-      } else if (taxableIncome <= 900000) {
-        taxBase = (taxableIncome - 600000) * 0.10 + 15000; // 5% of 3L = 15,000
+      } else if (taxableIncome <= 1000000) {
+        taxBase = (taxableIncome - 700000) * 0.10 + 20000; // 5% of 4L = 20,000
       } else if (taxableIncome <= 1200000) {
-        taxBase = (taxableIncome - 900000) * 0.15 + 45000; // 15,000 + 30,000
+        taxBase = (taxableIncome - 1000000) * 0.15 + 50000; // 20,000 + 30,000
       } else if (taxableIncome <= 1500000) {
-        taxBase = (taxableIncome - 1200000) * 0.20 + 90000; // 45,000 + 45,000
+        taxBase = (taxableIncome - 1200000) * 0.20 + 80000; // 50,000 + 30,000
       } else {
-        taxBase = (taxableIncome - 1500000) * 0.30 + 150000; // 90,000 + 60,000
+        taxBase = (taxableIncome - 1500000) * 0.30 + 140000; // 80,000 + 60,000
       }
       
-      // Apply Section 87A rebate: If taxable income ≤ ₹7,00,000, tax is 0
+      // Apply Section 87A rebate for New Regime (FY 2024-25):
+      // - If taxable income ≤ ₹7,00,000: Full rebate (tax = 0)
+      // - If taxable income > ₹7,00,000 and ≤ ₹12,00,000: Rebate of ₹60,000 (or tax amount, whichever is lower)
       if (taxableIncome <= 700000) {
         taxBase = 0;
+      } else if (taxableIncome <= 1200000) {
+        // Apply rebate of ₹60,000 (or tax amount, whichever is lower)
+        const rebateAmount = Math.min(taxBase, 60000);
+        taxBase = taxBase - rebateAmount;
       }
       
       incomeTax = Math.round(taxBase);
     } else {
+      // Standard Deduction for Old Regime (FY 2024-25) - ₹50,000
       standardDeduction = 50000;
       
       // ET Money default: Only apply deductions if user explicitly provides them
@@ -299,7 +311,9 @@ export default function InHandSalaryCalculator() {
         taxBase = (taxableIncome - 1000000) * 0.30 + 112500; // 12,500 + 100,000
       }
       
-      // Apply Section 87A rebate: If taxable income ≤ ₹5,00,000, tax is 0
+      // Apply Section 87A rebate for Old Regime (FY 2024-25):
+      // - If taxable income ≤ ₹5,00,000: Full rebate (tax = 0)
+      // - Rebate amount is ₹12,500 (or tax amount, whichever is lower) for taxable income up to ₹5,00,000
       if (taxableIncome <= 500000) {
         taxBase = 0;
       }
@@ -349,10 +363,10 @@ export default function InHandSalaryCalculator() {
     incomeTax = yearlyTax;
 
     setResult({
-      grossSalary,
+      grossSalary: grossSalary,
       basicSalary,
       hra,
-      specialAllowance,
+      specialAllowance: specialAllowanceYearly,
       pfEmployee,
       pfEmployer,
       gratuity,
@@ -374,7 +388,45 @@ export default function InHandSalaryCalculator() {
       taxWithoutExemptions,
       taxSavings,
     });
+    
+    // Mark that calculation has been successfully completed
+    hasCalculatedRef.current = true;
+    } catch (error) {
+      console.error("Error in calculateSalary:", error);
+      setErrors(prev => ({ ...prev, general: "An error occurred during calculation. Please check your inputs." }));
+      hasCalculatedRef.current = false;
+    }
   };
+
+  // Auto-recalculate when tax regime changes (if calculation already done)
+  useEffect(() => {
+    // Skip initial render - only recalculate on actual changes
+    if (!hasCalculatedRef.current) {
+      return;
+    }
+    
+    // Only recalculate if we have a valid CTC and calculation has been done at least once
+    const ctcValue = parseFloat(ctc);
+    if (ctc && !isNaN(ctcValue) && ctcValue > 0) {
+      calculateSalary();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxRegime]);
+
+  // Auto-recalculate when PF option changes (if calculation already done)
+  useEffect(() => {
+    // Skip initial render - only recalculate on actual changes
+    if (!hasCalculatedRef.current) {
+      return;
+    }
+    
+    // Only recalculate if we have a valid CTC and calculation has been done at least once
+    const ctcValue = parseFloat(ctc);
+    if (ctc && !isNaN(ctcValue) && ctcValue > 0) {
+      calculateSalary();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pfOption]);
 
   const formatCurrency = (amount: number) => {
     if (isNaN(amount) || !isFinite(amount) || amount < 0) {
@@ -482,6 +534,26 @@ export default function InHandSalaryCalculator() {
                   </div>
                 </div>
 
+                {/* EPF Contribution Option - Always Visible */}
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <Label className="text-base font-semibold">EPF Contribution</Label>
+                  <RadioGroup value={pfOption === "fixed" ? "fixed" : "actual"} onValueChange={(value) => setPfOption(value as "actual" | "fixed")}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="actual" id="pf-actual-main" />
+                      <Label htmlFor="pf-actual-main" className="font-normal cursor-pointer">12% of basic salary</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="fixed" id="pf-fixed-main" />
+                      <Label htmlFor="pf-fixed-main" className="font-normal cursor-pointer">Minimum ₹1,800/month</Label>
+                    </div>
+                  </RadioGroup>
+                  <p className="text-xs text-muted-foreground">
+                    {pfOption === "actual" 
+                      ? `EPF will be 12% of basic salary (${formatCurrency(Math.round((parseFloat(ctc) || 0) * 0.50 * 0.12 / 12))}/month)`
+                      : "EPF will be capped at ₹1,800/month (minimum contribution)"}
+                  </p>
+                </div>
+
                 {/* Exemptions Toggle - Only for Old Regime */}
                 {taxRegime === "old" && (
                   <div className="space-y-3 p-4 border rounded-lg">
@@ -531,21 +603,18 @@ export default function InHandSalaryCalculator() {
                 )}
 
                 <div className="flex gap-3">
-                  <Button onClick={calculateSalary} className={ctc !== "1200000" || variablePay || age !== "30" || section80CInput ? "flex-1" : "w-full"} size="lg">
+                  <Button onClick={calculateSalary} className={ctc || variablePay || section80CInput ? "flex-1" : "w-full"} size="lg">
                   <Calculator className="h-5 w-5 mr-2" />
                   Calculate Salary
                 </Button>
-                  {(ctc !== "1200000" || variablePay || age !== "30" || section80CInput) && (
+                  {(ctc || variablePay || section80CInput) && (
                     <Button 
                       onClick={() => {
-                        setCtc("1200000");
+                        setCtc("");
                         setVariablePay("");
-                      setTaxRegime("old");
-                      setAge("30");
-                      setExemptionsEnabled(true);
-                      setSection80CInput("");
-                      setResult(null);
-                      setErrors({});
+                        setSection80CInput("");
+                        setResult(null);
+                        setErrors({});
                       }}
                       variant="outline"
                       size="lg"
@@ -844,30 +913,17 @@ export default function InHandSalaryCalculator() {
                   )}
                 </Card>
 
-                {/* EPF and Gratuity Section */}
+                {/* Gratuity Section */}
                 <Card>
                   <CardHeader className="cursor-pointer" onClick={() => setEpfExpanded(!epfExpanded)}>
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">EPF and Gratuity</CardTitle>
+                      <CardTitle className="text-base">Gratuity</CardTitle>
                       <span className="text-muted-foreground">{epfExpanded ? "−" : "+"}</span>
                     </div>
                   </CardHeader>
                   {epfExpanded && (
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Monthly EPF</Label>
-                          <RadioGroup value={pfOption === "fixed" ? "fixed" : "actual"} onValueChange={(value) => setPfOption(value as "actual" | "fixed")}>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="fixed" id="pf-fixed" />
-                              <Label htmlFor="pf-fixed" className="font-normal cursor-pointer">Minimum (1800)</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="actual" id="pf-actual" />
-                              <Label htmlFor="pf-actual" className="font-normal cursor-pointer">12% of the basic salary</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
                         <div className="space-y-2">
                           <Label>Annual gratuity</Label>
                           <Input 
@@ -876,7 +932,7 @@ export default function InHandSalaryCalculator() {
                             readOnly 
                             className="font-semibold"
                           />
-                          <p className="text-xs text-muted-foreground">Optional</p>
+                          <p className="text-xs text-muted-foreground">Calculated as 4.81% of basic salary</p>
                         </div>
                       </div>
                     </CardContent>
@@ -937,149 +993,6 @@ export default function InHandSalaryCalculator() {
                   </Card>
                 )}
               </div>
-            )}
-
-            {/* How It Works Section - Now appears below results */}
-            {result && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Info className="h-5 w-5" />
-                    How It Works
-                  </CardTitle>
-                  <CardDescription>Understanding your salary calculation</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                    <h3 className="font-semibold mb-3 text-base text-foreground">Understanding Your Salary Structure</h3>
-                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                      Your Cost to Company (CTC) is broken down into various components. Understanding this breakdown 
-                      helps you see exactly how much you take home after all deductions.
-                    </p>
-                    
-                    <h4 className="font-semibold mb-2 text-sm text-foreground mt-4">Salary Components Breakdown:</h4>
-                    <ol className="space-y-3 text-sm text-muted-foreground list-decimal list-inside">
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Basic Salary:</strong> Usually 40-50% of CTC. This forms the base for 
-                        PF, gratuity, and other calculations. Higher basic means higher PF contribution and better retirement benefits.
-                      </li>
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">House Rent Allowance (HRA):</strong> Typically 40-50% of Basic salary. 
-                        HRA is partially tax-exempt based on actual rent paid, making it a tax-efficient component.
-                      </li>
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Special Allowance:</strong> The remaining amount after Basic and HRA. 
-                        This is fully taxable and forms part of your gross salary.
-                      </li>
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Variable Pay:</strong> Performance-based component that may vary. 
-                        This is separate from fixed pay and is also fully taxable.
-                      </li>
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Gross Salary:</strong> Basic + HRA + Special Allowance (Fixed Pay portion)
-                      </li>
-                    </ol>
-                  </div>
-
-                  <div className="p-4 bg-accent/5 rounded-lg border border-accent/10">
-                    <h3 className="font-semibold mb-3 text-base text-foreground">Mandatory Deductions</h3>
-                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                      These deductions are mandatory as per Indian labor laws and tax regulations. They reduce your 
-                      gross salary to arrive at your net take-home amount.
-                    </p>
-                    
-                    <h4 className="font-semibold mb-2 text-sm text-foreground mt-4">Deduction Details:</h4>
-                    <ol className="space-y-3 text-sm text-muted-foreground list-decimal list-inside">
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Employee Provident Fund (EPF):</strong> 
-                        <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-                          <li>12% of Basic Salary (mandatory contribution) or Fixed ₹1,800/month based on your selection</li>
-                          <li>Maximum ₹1,800/month (capped at ₹15,000 basic salary as per EPFO rules) if fixed option selected</li>
-                          <li>This is your retirement savings and earns tax-free interest</li>
-                        </ul>
-                      </li>
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Employee State Insurance (ESIC):</strong> 
-                        <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-                          <li>0.75% of Gross Salary</li>
-                          <li>Applicable only if gross salary ≤ ₹21,000/month</li>
-                          <li>Provides health insurance coverage</li>
-                        </ul>
-                      </li>
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Professional Tax:</strong> 
-                        <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-                          <li>₹200/month (standard rate, varies by state)</li>
-                          <li>Annual deduction: ₹2,400</li>
-                          <li>State-specific tax on employment</li>
-                        </ul>
-                      </li>
-                      <li className="leading-relaxed">
-                        <strong className="text-foreground">Income Tax:</strong> Calculated based on your selected tax regime 
-                        (Old or New) using applicable slab rates, surcharge, and cess. If Gross Salary ≤ ₹12,00,000, no tax is applicable.
-                      </li>
-                    </ol>
-                  </div>
-
-                  <div className="p-4 bg-success/5 rounded-lg border border-success/10">
-                    <h3 className="font-semibold mb-3 text-base text-foreground">Tax Calculation - {taxRegime === "old" ? "Old" : "New"} Regime</h3>
-                    {taxRegime === "old" ? (
-                      <div className="space-y-3 text-sm text-muted-foreground">
-                        <p className="leading-relaxed">
-                          <strong className="text-foreground">Old Regime Benefits:</strong>
-                        </p>
-                        <ul className="list-disc list-inside ml-4 space-y-1">
-                          <li>Standard deduction: ₹50,000</li>
-                          <li>Section 80C: Up to ₹1,50,000 (PPF, ELSS, Life Insurance, etc.)</li>
-                          <li>Section 80D: Health insurance premiums (₹25,000/₹50,000 based on age)</li>
-                          <li>HRA exemption based on actual rent paid</li>
-                          <li>Home loan interest deduction (Section 24(b))</li>
-                        </ul>
-                        <p className="leading-relaxed mt-3">
-                          Tax is calculated using progressive slab rates: 0-₹2.5L (0%), ₹2.5L-₹5L (5%), 
-                          ₹5L-₹10L (20%), Above ₹10L (30%), plus 4% Health & Education Cess.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 text-sm text-muted-foreground">
-                        <p className="leading-relaxed">
-                          <strong className="text-foreground">New Regime Benefits:</strong>
-                        </p>
-                        <ul className="list-disc list-inside ml-4 space-y-1">
-                          <li>Higher standard deduction: ₹75,000</li>
-                          <li>Simplified tax structure with lower rates for income up to ₹15L</li>
-                          <li>No need to maintain investment proofs</li>
-                          <li>No deductions allowed (except standard deduction)</li>
-                          <li>If Gross Salary ≤ ₹12,00,000, no tax is applicable</li>
-                        </ul>
-                        <p className="leading-relaxed mt-3">
-                          Tax is calculated using new slab rates: 0-₹3L (0%), ₹3L-₹7L (5%), ₹7L-₹10L (10%), 
-                          ₹10L-₹12L (15%), ₹12L-₹15L (20%), ₹15L-₹20L (25%), Above ₹20L (30%), plus 4% cess.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4 bg-muted/50 rounded-lg border">
-                    <h4 className="font-semibold mb-2 text-sm text-foreground">Final Calculation</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      <strong className="text-foreground">Net (In-Hand) Salary = Gross Salary - (Employee PF + Tax)</strong>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      This is your net take-home amount that gets credited to your bank account every month.
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                    <h4 className="font-semibold mb-2 text-sm text-foreground">💡 Pro Tip</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Switch between Old and New tax regimes using the tabs above to see which regime gives you 
-                      better take-home salary. Remember, you can choose your preferred regime each financial year 
-                      when filing your income tax return.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
             )}
 
             {/* Article Links Section */}
