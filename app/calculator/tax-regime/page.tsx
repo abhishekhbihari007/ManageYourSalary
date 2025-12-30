@@ -35,11 +35,6 @@ export default function TaxRegimePicker() {
   const [annualIncome, setAnnualIncome] = useState<string>("");
   const [section80C, setSection80C] = useState<string>("150000");
   const [section80D, setSection80D] = useState<string>("0");
-  // HRA calculation inputs
-  const [basicSalary, setBasicSalary] = useState<string>("");
-  const [hraReceived, setHraReceived] = useState<string>("");
-  const [rentPaid, setRentPaid] = useState<string>("");
-  const [cityType, setCityType] = useState<"metro" | "non-metro">("metro");
   const [otherDeductions, setOtherDeductions] = useState<string>("0");
   const [ageCategory, setAgeCategory] = useState<AgeCategory>("below60");
   const [taxRegime, setTaxRegime] = useState<"old" | "new">("old");
@@ -85,29 +80,6 @@ export default function TaxRegimePicker() {
     setter(value);
   };
 
-  // Calculate HRA exemption as per Income Tax Act
-  const calculateHRAExemption = (
-    basicSalary: number,
-    hraReceived: number,
-    rentPaid: number,
-    cityType: "metro" | "non-metro"
-  ): number => {
-    if (basicSalary <= 0 || hraReceived <= 0 || rentPaid <= 0) {
-      return 0;
-    }
-
-    // HRA exemption = Minimum of:
-    // 1. Actual HRA received
-    // 2. Actual rent paid - 10% of basic salary
-    // 3. 50% of basic (metro) or 40% of basic (non-metro)
-
-    const option1 = hraReceived;
-    const option2 = Math.max(0, rentPaid - (basicSalary * 0.1));
-    const option3 = cityType === "metro" ? basicSalary * 0.5 : basicSalary * 0.4;
-
-    return Math.min(option1, option2, option3);
-  };
-
   // Old calculation functions removed - now using taxCalculator utility
 
   const calculateTax = () => {
@@ -116,16 +88,8 @@ export default function TaxRegimePicker() {
     const sec80C = Math.min(parseFloat(section80C || "0") || 0, 150000);
     const sec80DInput = parseFloat(section80D || "0") || 0;
     
-    // HRA calculation inputs
-    const basic = parseFloat(basicSalary || "0") || 0;
-    const hraRec = parseFloat(hraReceived || "0") || 0;
-    const rent = parseFloat(rentPaid || "0") || 0;
-    
-    // Calculate HRA exemption using legal formula
-    const hraExemption = calculateHRAExemption(basic, hraRec, rent, cityType);
-    
-    // Use calculated HRA exemption
-    const hraValue = hraExemption;
+    // HRA exemption - set to 0 since calculation inputs are removed
+    const hraValue = 0;
     
     const otherDed = parseFloat(otherDeductions || "0") || 0;
 
@@ -138,7 +102,7 @@ export default function TaxRegimePicker() {
     }
 
     // Rule 2: No negative deductions allowed
-    if (sec80C < 0 || sec80DInput < 0 || hraValue < 0 || otherDed < 0 || basic < 0 || hraRec < 0 || rent < 0) {
+    if (sec80C < 0 || sec80DInput < 0 || hraValue < 0 || otherDed < 0) {
       setErrors(prev => ({ ...prev, deductions: "Deductions cannot be negative. Please enter valid non-negative values." }));
       setResult(null);
       return;
@@ -368,89 +332,6 @@ export default function TaxRegimePicker() {
                     )}
                   </div>
 
-                  <div className="space-y-4 border-t pt-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">HRA Exemption Calculation</Label>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle className="h-3 w-3 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="text-xs">HRA exemption = Minimum of:<br />
-                            1. Actual HRA received<br />
-                            2. Rent paid - 10% of basic<br />
-                            3. 50% of basic (metro) or 40% of basic (non-metro)</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="basic">Basic Salary (₹)</Label>
-                      <Input
-                        id="basic"
-                        type="text"
-                        placeholder="0"
-                        value={basicSalary}
-                        onChange={(e) => handleNumberInput(e.target.value, setBasicSalary, "basic", false)}
-                      />
-                      <p className="text-xs text-muted-foreground">Basic salary component</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="hraReceived">HRA Received (₹)</Label>
-                      <Input
-                        id="hraReceived"
-                        type="text"
-                        placeholder="0"
-                        value={hraReceived}
-                        onChange={(e) => handleNumberInput(e.target.value, setHraReceived, "hraReceived", false)}
-                      />
-                      <p className="text-xs text-muted-foreground">Actual HRA received from employer</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="rentPaid">Rent Paid (₹)</Label>
-                      <Input
-                        id="rentPaid"
-                        type="text"
-                        placeholder="0"
-                        value={rentPaid}
-                        onChange={(e) => handleNumberInput(e.target.value, setRentPaid, "rentPaid", false)}
-                      />
-                      <p className="text-xs text-muted-foreground">Actual rent paid per month (annual)</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cityType">City Type</Label>
-                      <Select value={cityType} onValueChange={(value) => setCityType(value as "metro" | "non-metro")}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="metro">Metro (50% of basic)</SelectItem>
-                          <SelectItem value="non-metro">Non-Metro (40% of basic)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">Metro: Mumbai, Delhi, Kolkata, Chennai</p>
-                    </div>
-
-                    {(basicSalary || hraReceived || rentPaid) && (
-                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-                        <p className="text-xs font-medium text-foreground mb-1">Calculated HRA Exemption:</p>
-                        <p className="text-sm font-semibold text-primary">
-                          {formatCurrency(calculateHRAExemption(
-                            parseFloat(basicSalary || "0") || 0,
-                            parseFloat(hraReceived || "0") || 0,
-                            parseFloat(rentPaid || "0") || 0,
-                            cityType
-                          ))}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="other">Other Deductions (₹)</Label>
                     <Input
@@ -490,20 +371,16 @@ export default function TaxRegimePicker() {
                 )}
 
                 <div className="flex gap-3">
-                  <Button onClick={calculateTax} className={annualIncome || section80C !== "150000" || section80D !== "0" || basicSalary || hraReceived || rentPaid || otherDeductions !== "0" ? "flex-1" : "w-full"} size="lg">
+                  <Button onClick={calculateTax} className={annualIncome || section80C !== "150000" || section80D !== "0" || otherDeductions !== "0" ? "flex-1" : "w-full"} size="lg">
                     <Calculator className="h-5 w-5 mr-2" />
                     Calculate Tax
                   </Button>
-                  {(annualIncome || section80C !== "150000" || section80D !== "0" || basicSalary || hraReceived || rentPaid || otherDeductions !== "0") && (
+                  {(annualIncome || section80C !== "150000" || section80D !== "0" || otherDeductions !== "0") && (
                     <Button 
                       onClick={() => {
                         setAnnualIncome("");
                         setSection80C("150000");
                         setSection80D("0");
-                        setBasicSalary("");
-                        setHraReceived("");
-                        setRentPaid("");
-                        setCityType("metro");
                         setOtherDeductions("0");
                         setAgeCategory("below60");
                         setResult(null);

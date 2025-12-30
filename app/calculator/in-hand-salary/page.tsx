@@ -995,6 +995,149 @@ export default function InHandSalaryCalculator() {
               </div>
             )}
 
+            {/* How It Works Section - Now appears below results */}
+            {result && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Info className="h-5 w-5" />
+                    How It Works
+                  </CardTitle>
+                  <CardDescription>Understanding your salary calculation</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                    <h3 className="font-semibold mb-3 text-base text-foreground">Understanding Your Salary Structure</h3>
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                      Your Cost to Company (CTC) is broken down into various components. Understanding this breakdown 
+                      helps you see exactly how much you take home after all deductions.
+                    </p>
+                    
+                    <h4 className="font-semibold mb-2 text-sm text-foreground mt-4">Salary Components Breakdown:</h4>
+                    <ol className="space-y-3 text-sm text-muted-foreground list-decimal list-inside">
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Basic Salary:</strong> Usually 40-50% of CTC. This forms the base for 
+                        PF, gratuity, and other calculations. Higher basic means higher PF contribution and better retirement benefits.
+                      </li>
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">House Rent Allowance (HRA):</strong> Typically 40-50% of Basic salary. 
+                        HRA is partially tax-exempt based on actual rent paid, making it a tax-efficient component.
+                      </li>
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Special Allowance:</strong> The remaining amount after Basic and HRA. 
+                        This is fully taxable and forms part of your gross salary.
+                      </li>
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Variable Pay:</strong> Performance-based component that may vary. 
+                        This is separate from fixed pay and is also fully taxable.
+                      </li>
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Gross Salary:</strong> Basic + HRA + Special Allowance (Fixed Pay portion)
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="p-4 bg-accent/5 rounded-lg border border-accent/10">
+                    <h3 className="font-semibold mb-3 text-base text-foreground">Mandatory Deductions</h3>
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                      These deductions are mandatory as per Indian labor laws and tax regulations. They reduce your 
+                      gross salary to arrive at your net take-home amount.
+                    </p>
+                    
+                    <h4 className="font-semibold mb-2 text-sm text-foreground mt-4">Deduction Details:</h4>
+                    <ol className="space-y-3 text-sm text-muted-foreground list-decimal list-inside">
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Employee Provident Fund (EPF):</strong> 
+                        <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+                          <li>12% of Basic Salary (mandatory contribution) or Fixed ₹1,800/month based on your selection</li>
+                          <li>Maximum ₹1,800/month (capped at ₹15,000 basic salary as per EPFO rules) if fixed option selected</li>
+                          <li>This is your retirement savings and earns tax-free interest</li>
+                        </ul>
+                      </li>
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Employee State Insurance (ESIC):</strong> 
+                        <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+                          <li>0.75% of Gross Salary</li>
+                          <li>Applicable only if gross salary ≤ ₹21,000/month</li>
+                          <li>Provides health insurance coverage</li>
+                        </ul>
+                      </li>
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Professional Tax:</strong> 
+                        <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
+                          <li>₹200/month (standard rate, varies by state)</li>
+                          <li>Annual deduction: ₹2,400</li>
+                          <li>State-specific tax on employment</li>
+                        </ul>
+                      </li>
+                      <li className="leading-relaxed">
+                        <strong className="text-foreground">Income Tax:</strong> Calculated based on your selected tax regime 
+                        (Old or New) using applicable slab rates, surcharge, and cess. If Gross Salary ≤ ₹12,00,000, no tax is applicable.
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="p-4 bg-success/5 rounded-lg border border-success/10">
+                    <h3 className="font-semibold mb-3 text-base text-foreground">Tax Calculation - {taxRegime === "old" ? "Old" : "New"} Regime</h3>
+                    {taxRegime === "old" ? (
+                      <div className="space-y-3 text-sm text-muted-foreground">
+                        <p className="leading-relaxed">
+                          <strong className="text-foreground">Old Regime Benefits:</strong>
+                        </p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>Standard deduction: ₹50,000</li>
+                          <li>Section 80C: Up to ₹1,50,000 (PPF, ELSS, Life Insurance, etc.)</li>
+                          <li>Section 80D: Health insurance premiums (₹25,000/₹50,000 based on age)</li>
+                          <li>HRA exemption based on actual rent paid</li>
+                          <li>Home loan interest deduction (Section 24(b))</li>
+                        </ul>
+                        <p className="leading-relaxed mt-3">
+                          Tax is calculated using progressive slab rates: 0-₹2.5L (0%), ₹2.5L-₹5L (5%), 
+                          ₹5L-₹10L (20%), Above ₹10L (30%), plus 4% Health & Education Cess.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 text-sm text-muted-foreground">
+                        <p className="leading-relaxed">
+                          <strong className="text-foreground">New Regime Benefits:</strong>
+                        </p>
+                        <ul className="list-disc list-inside ml-4 space-y-1">
+                          <li>Higher standard deduction: ₹75,000</li>
+                          <li>Simplified tax structure with lower rates for income up to ₹15L</li>
+                          <li>No need to maintain investment proofs</li>
+                          <li>No deductions allowed (except standard deduction)</li>
+                          <li>If Gross Salary ≤ ₹12,00,000, no tax is applicable</li>
+                        </ul>
+                        <p className="leading-relaxed mt-3">
+                          Tax is calculated using new slab rates: 0-₹3L (0%), ₹3L-₹7L (5%), ₹7L-₹10L (10%), 
+                          ₹10L-₹12L (15%), ₹12L-₹15L (20%), ₹15L-₹20L (25%), Above ₹20L (30%), plus 4% cess.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-muted/50 rounded-lg border">
+                    <h4 className="font-semibold mb-2 text-sm text-foreground">Final Calculation</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      <strong className="text-foreground">Net (In-Hand) Salary = Gross Salary - (Employee PF + Tax)</strong>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This is your net take-home amount that gets credited to your bank account every month.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                    <h4 className="font-semibold mb-2 text-sm text-foreground">💡 Pro Tip</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Switch between Old and New tax regimes using the tabs above to see which regime gives you 
+                      better take-home salary. Remember, you can choose your preferred regime each financial year 
+                      when filing your income tax return.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Article Links Section */}
             <ArticleLinks calculatorType="in-hand-salary" />
           </div>
