@@ -148,9 +148,9 @@
     min-height: 100px;
   }
 
-  /* Ensure sticky header works across all devices */
+  /* Ensure fixed header works across all devices */
   header {
-    position: sticky !important;
+    position: fixed !important;
     top: 0 !important;
     z-index: 9999 !important;
     width: 100% !important;

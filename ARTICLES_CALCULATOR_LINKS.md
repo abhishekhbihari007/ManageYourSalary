@@ -1,8 +1,11 @@
 # Articles with Calculator Links Reference
 
 ## File Location
-**Main Articles File**: `app/blog/[slug]/page.tsx`
-**Blog List File**: `app/blog/page.tsx`
+**Main Articles File**: `app/blog/[slug]/page.tsx`  
+**Blog List File**: `app/blog/page.tsx`  
+**Live Website**: https://money-calculator-mu.vercel.app/
+
+**Source**: Calculator links extracted from the live website to ensure accuracy.
 
 ---
 
@@ -182,25 +185,52 @@ In-Hand Salary = Gross Salary - All Deductions
 
 ---
 
-## Calculator Routes Reference
+## Calculator Routes Reference (Extracted from Live Site)
 
-| Calculator Name | Route |
-|----------------|-------|
-| In-Hand Salary Calculator | `/calculator/in-hand-salary` |
-| Tax Regime Calculator | `/calculator/tax-regime` |
-| Salary Growth Calculator | `/calculator/salary-growth` |
-| Offer Analyzer | `/calculator/offer-analyzer` |
-| Term Insurance Calculator | `/calculator/term-insurance` |
-| Health Insurance Calculator | `/calculator/health-insurance` |
-| EPF Calculator | `/calculator/epf` |
-| EPS Calculator | `/calculator/eps` |
-| Gratuity Calculator | `/calculator/gratuity` |
-| NPS Calculator | `/calculator/nps` |
-| Retirement Calculator | `/calculator/retirement` |
-| SIP Calculator | `/calculator/sip` |
-| RD Calculator | `/calculator/rd` |
-| FD Calculator | `/calculator/fd` |
-| Rent vs Own Calculator | `/calculator/rent-vs-own` |
+Based on the live website at https://money-calculator-mu.vercel.app/, here are all available calculators:
+
+| Calculator Name (As on Website) | Route | Full URL |
+|--------------------------------|-------|----------|
+| In-Hand Salary | `/calculator/in-hand-salary` | `https://money-calculator-mu.vercel.app/calculator/in-hand-salary` |
+| Tax Regime Picker | `/calculator/tax-regime` | `https://money-calculator-mu.vercel.app/calculator/tax-regime` |
+| Salary Growth Tracker | `/calculator/salary-growth` | `https://money-calculator-mu.vercel.app/calculator/salary-growth` |
+| Offer Analyzer | `/calculator/offer-analyzer` | `https://money-calculator-mu.vercel.app/calculator/offer-analyzer` |
+| Term Insurance Calculator | `/calculator/term-insurance` | `https://money-calculator-mu.vercel.app/calculator/term-insurance` |
+| Health Insurance Calculator | `/calculator/health-insurance` | `https://money-calculator-mu.vercel.app/calculator/health-insurance` |
+| EPF Accumulator | `/calculator/epf` | `https://money-calculator-mu.vercel.app/calculator/epf` |
+| EPS Pension Calculator | `/calculator/eps` | `https://money-calculator-mu.vercel.app/calculator/eps` |
+| Gratuity Estimator | `/calculator/gratuity` | `https://money-calculator-mu.vercel.app/calculator/gratuity` |
+| NPS Wealth Builder | `/calculator/nps` | `https://money-calculator-mu.vercel.app/calculator/nps` |
+| Retirement Mapper | `/calculator/retirement` | `https://money-calculator-mu.vercel.app/calculator/retirement` |
+| Pension Projector | `/calculator/retirement` | `https://money-calculator-mu.vercel.app/calculator/retirement` |
+| Investment Goal Planner | `/calculator/sip` | `https://money-calculator-mu.vercel.app/calculator/sip` |
+| SIP Growth Calculator | `/calculator/sip` | `https://money-calculator-mu.vercel.app/calculator/sip` |
+| RD Calculator | `/calculator/rd` | `https://money-calculator-mu.vercel.app/calculator/rd` |
+| FD Calculator | `/calculator/fd` | `https://money-calculator-mu.vercel.app/calculator/fd` |
+| Safety Net Builder | `/calculator/retirement` | `https://money-calculator-mu.vercel.app/calculator/retirement` |
+| Rent vs Own Analyzer | `/calculator/rent-vs-own` | `https://money-calculator-mu.vercel.app/calculator/rent-vs-own` |
+
+**Note**: Use relative paths (`/calculator/route-name`) in your articles for better compatibility.
+
+### Full URLs (if needed for external references)
+
+If you need absolute URLs for any reason, use these:
+
+- In-Hand Salary: `https://money-calculator-mu.vercel.app/calculator/in-hand-salary`
+- Tax Regime Picker: `https://money-calculator-mu.vercel.app/calculator/tax-regime`
+- Salary Growth Tracker: `https://money-calculator-mu.vercel.app/calculator/salary-growth`
+- Offer Analyzer: `https://money-calculator-mu.vercel.app/calculator/offer-analyzer`
+- Term Insurance Calculator: `https://money-calculator-mu.vercel.app/calculator/term-insurance`
+- Health Insurance Calculator: `https://money-calculator-mu.vercel.app/calculator/health-insurance`
+- EPF Accumulator: `https://money-calculator-mu.vercel.app/calculator/epf`
+- EPS Pension Calculator: `https://money-calculator-mu.vercel.app/calculator/eps`
+- Gratuity Estimator: `https://money-calculator-mu.vercel.app/calculator/gratuity`
+- NPS Wealth Builder: `https://money-calculator-mu.vercel.app/calculator/nps`
+- Retirement Mapper: `https://money-calculator-mu.vercel.app/calculator/retirement`
+- SIP Growth Calculator: `https://money-calculator-mu.vercel.app/calculator/sip`
+- RD Calculator: `https://money-calculator-mu.vercel.app/calculator/rd`
+- FD Calculator: `https://money-calculator-mu.vercel.app/calculator/fd`
+- Rent vs Own Analyzer: `https://money-calculator-mu.vercel.app/calculator/rent-vs-own`
 
 ---
 
