@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 import { calculateIncomeTax, type TaxInput, type TaxResult, type AgeCategory } from "@/utils/taxCalculator";
 
 interface TaxSlab {
@@ -192,8 +193,24 @@ export default function TaxRegimePicker() {
       deductions: {},
     };
 
-    const oldRegime = calculateIncomeTax(oldRegimeInput);
-    const newRegime = calculateIncomeTax(newRegimeInput);
+    let oldRegime = calculateIncomeTax(oldRegimeInput);
+    let newRegime = calculateIncomeTax(newRegimeInput);
+
+    // IMPORTANT: If Gross Salary ≤ ₹12,00,000 (New Regime), no tax should be shown
+    // This matches the Hand Salary Calculator logic
+    if (income <= 1200000) {
+      // Override tax to 0 for New Regime if gross income <= ₹12,00,000
+      newRegime = {
+        ...newRegime,
+        taxBeforeRebate: 0,
+        rebateAmount: 0,
+        taxAfterRebate: 0,
+        surcharge: 0,
+        cessAmount: 0,
+        finalTaxPayable: 0,
+        taxSlabBreakdown: [],
+      };
+    }
 
     // Determine recommendation
     const recommendation = newRegime.finalTaxPayable < oldRegime.finalTaxPayable ? "NEW" : "OLD";
@@ -252,8 +269,8 @@ export default function TaxRegimePicker() {
               setTaxRegime(value as "old" | "new");
               setResult(null); // Clear results when switching tabs
             }}>
-              <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="old" className="flex items-center gap-2">
+              <TabsList className="grid w-full max-w-md grid-cols-2 gap-1">
+                <TabsTrigger value="old" className="flex items-center gap-2 text-xs sm:text-sm">
                   {taxRegime === "old" && <CheckCircle2 className="h-4 w-4" />}
                   Old Regime
                 </TabsTrigger>
@@ -867,6 +884,9 @@ export default function TaxRegimePicker() {
                 </Card>
               </div>
             )}
+
+            {/* Article Links Section */}
+            <ArticleLinks calculatorType="tax-regime" />
           </div>
         </div>
       </main>

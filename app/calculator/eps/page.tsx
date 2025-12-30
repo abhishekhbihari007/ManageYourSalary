@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function EPSCalculator() {
   const [pensionableSalary, setPensionableSalary] = useState<string>("");
@@ -363,6 +364,9 @@ export default function EPSCalculator() {
                 </Card>
               )}
             </div>
+
+            {/* Article Links Section */}
+            <ArticleLinks calculatorType="eps" />
           </div>
         </div>
       </main>

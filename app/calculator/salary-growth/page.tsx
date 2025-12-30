@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function SalaryGrowthCalculator() {
   const [currentSalary, setCurrentSalary] = useState<string>("");
@@ -357,6 +358,9 @@ export default function SalaryGrowthCalculator() {
               </Card>
             )}
           </div>
+
+          {/* Article Links Section */}
+          <ArticleLinks calculatorType="salary-growth" />
         </div>
       </main>
       <Footer />

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function FDCalculator() {
   const [principal, setPrincipal] = useState<string>("100000");
@@ -434,6 +435,9 @@ export default function FDCalculator() {
               </Card>
             )}
           </div>
+
+          {/* Article Links Section */}
+          <ArticleLinks calculatorType="fd" />
         </div>
       </main>
       <Footer />

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function HealthInsuranceCalculator() {
   const [familyType, setFamilyType] = useState<"individual" | "family">("individual");
@@ -432,6 +433,9 @@ export default function HealthInsuranceCalculator() {
                 </Card>
               )}
             </div>
+
+            {/* Article Links Section */}
+            <ArticleLinks calculatorType="health-insurance" />
           </div>
         </div>
       </main>

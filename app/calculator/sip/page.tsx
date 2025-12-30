@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function SIPCalculator() {
   const [monthlyInvestment, setMonthlyInvestment] = useState<string>("5000");
@@ -350,6 +351,9 @@ export default function SIPCalculator() {
               </Card>
             )}
           </div>
+
+          {/* Article Links Section */}
+          <ArticleLinks calculatorType="sip" />
         </div>
       </main>
       <Footer />

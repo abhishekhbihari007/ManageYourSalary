@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function RetirementCalculator() {
   const [currentAge, setCurrentAge] = useState<string>("30");
@@ -382,6 +383,9 @@ export default function RetirementCalculator() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Article Links Section */}
+            <ArticleLinks calculatorType="retirement" />
           </div>
         </div>
       </main>

@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
+import { numberToWords } from "@/lib/utils";
 
 interface SalaryBreakdown {
   grossSalary: number;
@@ -42,16 +44,24 @@ interface SalaryBreakdown {
 }
 
 export default function InHandSalaryCalculator() {
-  const [ctc, setCtc] = useState<string>("1200000");
-  const [variablePay, setVariablePay] = useState<string>("");
-  const [basicPercentage, setBasicPercentage] = useState<number[]>([40]);
+  const [ctc, setCtc] = useState<string>("2000000");
+  const [variablePay, setVariablePay] = useState<string>("200000");
+  // Basic Percentage is FIXED at 50% per ET Money spec - not adjustable
+  const basicPercentage = 50;
   const [hraOption, setHraOption] = useState<"40" | "50">("50");
-  const [taxRegime, setTaxRegime] = useState<"old" | "new">("old");
+  const [taxRegime, setTaxRegime] = useState<"old" | "new">("new");
   const [age, setAge] = useState<string>("30");
   const [exemptionsEnabled, setExemptionsEnabled] = useState<boolean>(true);
   const [section80CInput, setSection80CInput] = useState<string>("");
+  const [pfOption, setPfOption] = useState<"actual" | "fixed">("fixed"); // PF toggle: actual 12% or fixed ₹1,800 (default fixed as per screenshot)
   const [result, setResult] = useState<SalaryBreakdown | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [viewMode, setViewMode] = useState<"monthly" | "yearly">("monthly"); // Monthly/Yearly view toggle (default monthly as per screenshot)
+  const [hraExpanded, setHraExpanded] = useState<boolean>(false);
+  const [epfExpanded, setEpfExpanded] = useState<boolean>(false);
+  const [investmentsExpanded, setInvestmentsExpanded] = useState<boolean>(true); // Investments expanded by default like ET Money
+  const [monthlyRent, setMonthlyRent] = useState<string>("0");
+  const [annualHRA, setAnnualHRA] = useState<string>("");
 
   // Helper function to handle number-only input
   const handleNumberInput = (value: string, setter: (value: string) => void, fieldName: string, isRequired: boolean = false, min?: number, max?: number) => {
@@ -130,43 +140,61 @@ export default function InHandSalaryCalculator() {
       return;
     }
 
-    const basicPercent = basicPercentage[0] / 100;
-    const hraPercent = hraOption === "50" ? 0.5 : 0.4;
-    const ageValue = parseInt(age);
+    // Real-Time Salary Portal Calculation Method (MONTHLY-FIRST APPROACH):
+    // All calculations start with monthly values, then multiply by 12 for yearly
+    // IMPORTANT: Basic Salary is 50% of TOTAL CTC (not Fixed Pay)
+    // KEY DIFFERENCE: Gross = CTC - PF - Gratuity (not Basic + HRA + Special Allowance)
+    
+    const ageValue = parseInt(age) || 30;
+    
+    // Step 1: Monthly CTC = round(CTC / 12)
+    const monthlyCTC = Math.round(ctcValue / 12);
+    
+    // Step 2: Monthly Basic Salary = round((CTC × 50%) / 12)
+    // Basic Percentage is FIXED at 50% of TOTAL CTC per ET Money spec
+    const monthlyBasic = Math.round((ctcValue * 0.50) / 12);
+    const basicSalary = monthlyBasic * 12; // Yearly Basic
+    
+    // Step 3: Monthly HRA = round(50% of Monthly Basic)
+    const monthlyHRA = Math.round(monthlyBasic * 0.50);
+    const hra = monthlyHRA * 12; // Yearly HRA
+    
+    // Step 4: Employee PF (Monthly) - based on user selection
+    const monthlyPFUncapped = Math.round(monthlyBasic * 0.12);
+    // If "Minimum (1800)" selected, use min(12% of Monthly Basic, ₹1,800)
+    // If "12% of the basic salary" selected, use 12% WITHOUT CAP (as per real-time portal)
+    const monthlyPFEmployee = pfOption === "fixed" 
+      ? Math.min(monthlyPFUncapped, 1800) 
+      : monthlyPFUncapped; // NO CAP - 12% of 8L basic = 96,000 yearly
+    const pfEmployee = monthlyPFEmployee * 12; // Yearly Employee PF
+    
+    // Step 5: Employer PF (Monthly) - 12% without cap
+    const monthlyPFEmployer = monthlyPFUncapped; // NO CAP for employer PF
+    const pfEmployer = monthlyPFEmployer * 12; // Yearly Employer PF
+    
+    // Step 6: Monthly Gratuity = round(4.81% of Monthly Basic)
+    const monthlyGratuity = Math.round(monthlyBasic * 0.0481);
+    const gratuity = monthlyGratuity * 12; // Yearly Gratuity
 
-    const basicSalary = fixedPayValue * basicPercent;
-    const hra = Math.min(basicSalary * hraPercent, basicSalary * 0.5);
-    const specialAllowance = fixedPayValue - basicSalary - hra;
-
-    // Rule 5: Validate salary components don't exceed fixed pay
-    if (basicSalary + hra + specialAllowance > fixedPayValue + 1) { // +1 for floating point tolerance
-      setErrors(prev => ({ ...prev, ctc: "Salary components (Basic + HRA + Special Allowance) exceed fixed pay. Please adjust the percentages." }));
+    // Step 7: Calculate Gross Salary = CTC - Employee PF - Gratuity
+    // This is the key calculation as per real-time portal: Gross = CTC - PF - Gratuity
+    const grossSalary = Math.max(0, ctcValue - pfEmployee - gratuity);
+    const monthlyGross = grossSalary / 12; // Monthly Gross Salary
+    
+    // Recalculate Special Allowance from Gross: Gross - Basic - HRA
+    const monthlySpecialAllowance = Math.max(0, monthlyGross - monthlyBasic - monthlyHRA);
+    const specialAllowance = monthlySpecialAllowance * 12; // Yearly Special Allowance
+    
+    // Validate that Gross is sufficient for Basic + HRA
+    if (grossSalary < (basicSalary + hra)) {
+      setErrors(prev => ({ ...prev, ctc: "Gross salary is insufficient for Basic + HRA. Please increase CTC or adjust Basic percentage." }));
       return;
     }
 
-    // Rule 6: Special allowance cannot be negative
-    if (specialAllowance < 0) {
-      setErrors(prev => ({ ...prev, ctc: "Special allowance is negative. Please reduce Basic or HRA percentage." }));
-      return;
-    }
+    // No Professional Tax in ET Money calculation per spec
+    const professionalTax = 0;
 
-    // PF calculation - 12% of basic, capped at ₹15,000 basic salary
-    // Employee & Employer PF: 12% each, max ₹1,800/month (₹21,600/year) per person
-    const pfEmployee = Math.min(basicSalary * 0.12, 1800 * 12);
-    const pfEmployer = Math.min(basicSalary * 0.12, 1800 * 12);
-    const gratuity = basicSalary * 0.0481; // 4.81% of Basic
-
-    const grossSalary = basicSalary + hra + specialAllowance;
-
-    // Rule 7: Validate gross salary is reasonable (should equal fixed pay approximately)
-    if (Math.abs(grossSalary - fixedPayValue) > 100) {
-      setErrors(prev => ({ ...prev, ctc: "Salary components do not match fixed pay. Please check the calculation." }));
-      return;
-    }
-    const esic = grossSalary <= 21000 * 12 ? grossSalary * 0.0075 : 0;
-    const professionalTax = 200 * 12;
-
-    const hraExemption = Math.min(hra, basicSalary * 0.5);
+    let hraExemption = Math.min(hra, basicSalary * 0.5);
 
     let taxableIncome = 0;
     let incomeTax = 0;
@@ -192,110 +220,133 @@ export default function InHandSalaryCalculator() {
     };
 
     if (taxRegime === "new") {
-      standardDeduction = 75000;
-      // PF is deducted from taxable income
-      taxableIncome = Math.max(0, grossSalary - standardDeduction - pfEmployee - professionalTax);
+      // ET Money uses ₹50,000 standard deduction for New Regime (as shown in screenshot)
+      // Note: Official rate is ₹75,000, but ET Money appears to use ₹50,000
+      standardDeduction = 50000;
+      // Taxable Income = Yearly Gross Salary - Standard Deduction
+      // ET Money does NOT subtract Employee PF for New Regime tax calculation
+      taxableIncome = Math.max(0, grossSalary - standardDeduction);
       
-      // Calculate tax without exemptions for comparison
-      const taxableWithoutExemptions = Math.max(0, grossSalary - 75000 - pfEmployee - professionalTax);
+      // New Tax Regime Slabs (FY 2024-25) - ET Money exact slabs
+      // 0–3L → 0%
+      // 3–6L → 5%
+      // 6–9L → 10%
+      // 9–12L → 15%
+      // 12–15L → 20%
+      // Above 15L → 30%
       
-      // New Tax Regime Slabs (FY 2024-25)
-      // As per latest rules: Income up to ₹12,75,000 (including ₹75,000 standard deduction) should be tax-free
-      // This means if grossSalary <= ₹12,75,000, taxable income after standard deduction will be <= ₹12,00,000
-      // And taxable income <= ₹12,00,000 should have no tax
+      let taxBase = 0;
       
-      let taxWithoutExemptionsBase = 0;
-      // No tax if taxable income <= ₹12,00,000
-      if (taxableWithoutExemptions > 1200000) {
-        if (taxableWithoutExemptions > 2000000) {
-          taxWithoutExemptionsBase = (taxableWithoutExemptions - 2000000) * 0.30 + 275000;
-        } else if (taxableWithoutExemptions > 1500000) {
-          taxWithoutExemptionsBase = (taxableWithoutExemptions - 1500000) * 0.25 + 150000;
-        } else if (taxableWithoutExemptions > 1200000) {
-          taxWithoutExemptionsBase = (taxableWithoutExemptions - 1200000) * 0.20 + 90000;
-        } else if (taxableWithoutExemptions > 900000) {
-          taxWithoutExemptionsBase = (taxableWithoutExemptions - 900000) * 0.15 + 45000;
-        } else if (taxableWithoutExemptions > 700000) {
-          taxWithoutExemptionsBase = (taxableWithoutExemptions - 700000) * 0.10 + 25000;
-        } else if (taxableWithoutExemptions > 500000) {
-          taxWithoutExemptionsBase = (taxableWithoutExemptions - 500000) * 0.05 + 12500;
-        } else if (taxableWithoutExemptions > 300000) {
-          taxWithoutExemptionsBase = (taxableWithoutExemptions - 300000) * 0.05;
-        }
+      if (taxableIncome <= 300000) {
+        taxBase = 0;
+      } else if (taxableIncome <= 600000) {
+        taxBase = (taxableIncome - 300000) * 0.05;
+      } else if (taxableIncome <= 900000) {
+        taxBase = (taxableIncome - 600000) * 0.10 + 15000; // 5% of 3L = 15,000
+      } else if (taxableIncome <= 1200000) {
+        taxBase = (taxableIncome - 900000) * 0.15 + 45000; // 15,000 + 30,000
+      } else if (taxableIncome <= 1500000) {
+        taxBase = (taxableIncome - 1200000) * 0.20 + 90000; // 45,000 + 45,000
+      } else {
+        taxBase = (taxableIncome - 1500000) * 0.30 + 150000; // 90,000 + 60,000
       }
-      const surchargeWithoutExemptions = calculateSurcharge(taxWithoutExemptionsBase, grossSalary);
-      taxWithoutExemptions = (taxWithoutExemptionsBase + surchargeWithoutExemptions) * 1.04;
       
-      // Calculate tax for taxable income
-      // No tax if taxable income <= ₹12,00,000 (which corresponds to grossSalary <= ₹12,75,000 with standard deduction)
-      if (taxableIncome <= 1200000) {
-        incomeTax = 0;
-      } else if (taxableIncome > 2000000) {
-        incomeTax = (taxableIncome - 2000000) * 0.30 + 275000; // 150000 (from previous slabs) + 125000 (15-20L @ 25%)
-      } else if (taxableIncome > 1500000) {
-        incomeTax = (taxableIncome - 1500000) * 0.25 + 150000;
-      } else if (taxableIncome > 1200000) {
-        incomeTax = (taxableIncome - 1200000) * 0.20 + 90000;
-      } else if (taxableIncome > 900000) {
-        incomeTax = (taxableIncome - 900000) * 0.15 + 45000;
-      } else if (taxableIncome > 700000) {
-        incomeTax = (taxableIncome - 700000) * 0.10 + 25000;
-      } else if (taxableIncome > 500000) {
-        incomeTax = (taxableIncome - 500000) * 0.05 + 12500;
-      } else if (taxableIncome > 300000) {
-        incomeTax = (taxableIncome - 300000) * 0.05;
+      // Apply Section 87A rebate: If taxable income ≤ ₹7,00,000, tax is 0
+      if (taxableIncome <= 700000) {
+        taxBase = 0;
       }
+      
+      incomeTax = Math.round(taxBase);
     } else {
       standardDeduction = 50000;
       
+      // ET Money default: Only apply deductions if user explicitly provides them
+      // By default, ET Money calculates tax with only Standard Deduction and Employee PF
       if (exemptionsEnabled) {
-        // Use user input for 80C if provided, otherwise auto-calculate
+        // Use user input for 80C if provided
         const section80CInputValue = parseFloat(section80CInput) || 0;
         if (section80CInputValue > 0) {
           section80C = Math.min(150000, section80CInputValue); // Cap at ₹1.5 lakhs for Old Regime
-        } else {
-          section80C = Math.min(150000, grossSalary * 0.3);
         }
-        section80D = ageValue < 60 ? 25000 : 50000;
+        // Only apply 80D if user has entered investments (indicating they want to use exemptions)
+        if (section80CInputValue > 0) {
+          section80D = ageValue < 60 ? 25000 : 50000;
+        }
+        // Only apply HRA exemption if user has entered rent (indicating they want to use exemptions)
+        // For now, default to no HRA exemption to match ET Money
+        hraExemption = 0;
       }
       
-      // PF is deducted from taxable income
-      taxableIncome = Math.max(0, grossSalary - standardDeduction - (exemptionsEnabled ? hraExemption : 0) - pfEmployee - professionalTax - section80C - section80D);
+      // Taxable Income = Yearly Gross Salary - Standard Deduction - Employee PF (Yearly) - HRA Exemption - Section 80C - Section 80D
+      // ET Money default: Only Standard Deduction and Employee PF
+      taxableIncome = Math.max(0, grossSalary - standardDeduction - pfEmployee - (exemptionsEnabled ? hraExemption : 0) - section80C - section80D);
+      
+      // Old Tax Regime Slabs (FY 2024-25) - ET Money exact slabs
+      // 0–2.5L → 0%
+      // 2.5–5L → 5%
+      // 5–10L → 20%
+      // Above 10L → 30%
+      
+      let taxBase = 0;
+      
+      if (taxableIncome <= 250000) {
+        taxBase = 0;
+      } else if (taxableIncome <= 500000) {
+        taxBase = (taxableIncome - 250000) * 0.05;
+      } else if (taxableIncome <= 1000000) {
+        taxBase = (taxableIncome - 500000) * 0.20 + 12500; // 5% of 2.5L = 12,500
+      } else {
+        taxBase = (taxableIncome - 1000000) * 0.30 + 112500; // 12,500 + 100,000
+      }
+      
+      // Apply Section 87A rebate: If taxable income ≤ ₹5,00,000, tax is 0
+      if (taxableIncome <= 500000) {
+        taxBase = 0;
+      }
+      
+      incomeTax = Math.round(taxBase);
       
       // Calculate tax without exemptions for comparison
-      const taxableWithoutExemptions = Math.max(0, grossSalary - 50000 - pfEmployee - professionalTax);
-      
+      const taxableWithoutExemptions = Math.max(0, grossSalary - 50000 - pfEmployee);
       let taxWithoutExemptionsBase = 0;
-      if (taxableWithoutExemptions > 1000000) {
-        taxWithoutExemptionsBase = (taxableWithoutExemptions - 1000000) * 0.30 + 112500;
-      } else if (taxableWithoutExemptions > 500000) {
-        taxWithoutExemptionsBase = (taxableWithoutExemptions - 500000) * 0.20 + 12500;
-      } else if (taxableWithoutExemptions > 250000) {
+      if (taxableWithoutExemptions <= 250000) {
+        taxWithoutExemptionsBase = 0;
+      } else if (taxableWithoutExemptions <= 500000) {
         taxWithoutExemptionsBase = (taxableWithoutExemptions - 250000) * 0.05;
+      } else if (taxableWithoutExemptions <= 1000000) {
+        taxWithoutExemptionsBase = (taxableWithoutExemptions - 500000) * 0.20 + 12500;
+      } else {
+        taxWithoutExemptionsBase = (taxableWithoutExemptions - 1000000) * 0.30 + 112500;
+      }
+      if (taxableWithoutExemptions <= 500000) {
+        taxWithoutExemptionsBase = 0;
       }
       const surchargeWithoutExemptions = calculateSurcharge(taxWithoutExemptionsBase, grossSalary);
-      taxWithoutExemptions = (taxWithoutExemptionsBase + surchargeWithoutExemptions) * 1.04;
-      
-      // Old Tax Regime Slabs
-      if (taxableIncome > 1000000) {
-        incomeTax = (taxableIncome - 1000000) * 0.30 + 112500;
-      } else if (taxableIncome > 500000) {
-        incomeTax = (taxableIncome - 500000) * 0.20 + 12500;
-      } else if (taxableIncome > 250000) {
-        incomeTax = (taxableIncome - 250000) * 0.05;
-      }
+      const cessWithoutExemptions = Math.round((taxWithoutExemptionsBase + surchargeWithoutExemptions) * 0.04);
+      taxWithoutExemptions = Math.round(taxWithoutExemptionsBase + surchargeWithoutExemptions + cessWithoutExemptions);
     }
 
     // Calculate surcharge based on gross salary
     surcharge = calculateSurcharge(incomeTax, grossSalary);
     
-    // Calculate cess (4% on tax + surcharge)
-    cess = (incomeTax + surcharge) * 0.04;
-    incomeTax = incomeTax + surcharge + cess;
-    const taxSavings = exemptionsEnabled && taxRegime === "old" ? taxWithoutExemptions - incomeTax : 0;
+    // Calculate cess: 4% of rounded tax (tax + surcharge)
+    cess = Math.round((incomeTax + surcharge) * 0.04);
+    
+    // Final tax payable = tax + surcharge + cess (all rounded)
+    const yearlyTax = Math.round(incomeTax + surcharge + cess);
+    
+    // Monthly Tax = round(Yearly Tax / 12) - ET Money method
+    const monthlyTax = Math.round(yearlyTax / 12);
+    
+    const taxSavings = exemptionsEnabled && taxRegime === "old" ? taxWithoutExemptions - yearlyTax : 0;
 
-    const totalDeductions = pfEmployee + esic + professionalTax + incomeTax;
-    const netSalary = Math.max(0, grossSalary - totalDeductions);
+    // Net In-hand (Monthly) = Monthly Gross - Employee PF - Monthly Tax
+    // ET Money formula: No Professional Tax deduction
+    const monthlyNetSalary = Math.max(0, monthlyGross - monthlyPFEmployee - monthlyTax);
+    const netSalary = monthlyNetSalary * 12; // Yearly Net Salary
+    
+    // Store yearly tax for display
+    incomeTax = yearlyTax;
 
     setResult({
       grossSalary,
@@ -305,12 +356,12 @@ export default function InHandSalaryCalculator() {
       pfEmployee,
       pfEmployer,
       gratuity,
-      esic,
+      esic: 0, // Not in ET Money calculation
       professionalTax,
       incomeTax,
       surcharge,
       cess,
-      totalDeductions,
+      totalDeductions: pfEmployee + professionalTax + incomeTax,
       netSalary,
       ctc: ctcValue,
       variablePay: variablePayValue,
@@ -329,6 +380,7 @@ export default function InHandSalaryCalculator() {
     if (isNaN(amount) || !isFinite(amount) || amount < 0) {
       return "₹0";
     }
+    // Format with commas like ET Money: ₹10,00,000
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
@@ -347,98 +399,80 @@ export default function InHandSalaryCalculator() {
           </Link>
 
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Calculator className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">In-Hand Salary Calculator</h1>
-                <p className="text-muted-foreground">Calculate your take-home salary after all deductions</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Tax Regime Tabs */}
-          <div className="mb-6">
-            <Tabs value={taxRegime} onValueChange={(value) => setTaxRegime(value as "old" | "new")}>
-              <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="old" className="flex items-center gap-2">
-                  {taxRegime === "old" && <CheckCircle2 className="h-4 w-4" />}
-                  Old Regime
-                </TabsTrigger>
-                <TabsTrigger value="new" className="flex items-center gap-2">
-                  {taxRegime === "new" && <CheckCircle2 className="h-4 w-4" />}
-                  New Regime
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <p className="text-xs text-muted-foreground mt-2">You can switch regimes anytime to compare results</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Salary Calculator</h1>
+            <p className="text-muted-foreground">The salary calculator helps estimate in-hand salary based on CTC, deductions, and chosen tax regime.</p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Enter Your Details</CardTitle>
-                <CardDescription>Fill in your salary information to calculate your in-hand salary</CardDescription>
+                <CardTitle>Calculate Your In-hand Salary</CardTitle>
+                <CardDescription>Enter your salary details to calculate your take-home salary</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Tax Regime Tabs - Inside Card */}
+                <div className="mb-4 w-full">
+                  <Tabs value={taxRegime} onValueChange={(value) => setTaxRegime(value as "old" | "new")} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 gap-1">
+                      <TabsTrigger value="old" className="text-xs sm:text-sm flex-1">Old regime</TabsTrigger>
+                      <TabsTrigger value="new" className="text-xs sm:text-sm flex-1">New regime</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
                 {/* Annual CTC */}
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="ctc">Annual CTC (₹)</Label>
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </div>
+                  <Label htmlFor="ctc">Cost to Company (CTC)</Label>
                   <Input
                     id="ctc"
                     type="text"
-                    placeholder="e.g., 1200000"
+                    placeholder="e.g., 2000000"
                     value={ctc}
                     onChange={(e) => handleNumberInput(e.target.value, setCtc, "ctc", true, 1)}
-                    className="text-lg"
+                    className="text-base"
                   />
+                  {ctc && parseFloat(ctc) > 0 && (
+                    <p className="text-xs text-muted-foreground italic">
+                      {numberToWords(parseFloat(ctc) || 0)}
+                    </p>
+                  )}
                   {errors.ctc && (
                     <p className="text-xs text-destructive">{errors.ctc}</p>
-                  )}
-                  {ctc && (
-                    <div className="flex items-baseline gap-2">
-                      <p className="text-2xl font-bold">{formatCurrency(parseFloat(ctc) || 0)}</p>
-                      <p className="text-xs text-muted-foreground">Taxable Average: monthly</p>
-                    </div>
                   )}
                 </div>
 
                 {/* Variable Pay */}
                 <div className="space-y-2">
-                  <Label htmlFor="variable">Variable / Bonus Component (₹)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="variable"
-                      type="text"
-                      placeholder="Amount"
-                      value={variablePay}
-                      onChange={(e) => handleNumberInput(e.target.value, setVariablePay, "variablePay", false, 0)}
-                    />
+                  <Label htmlFor="variable">Variable Component</Label>
+                  <Input
+                    id="variable"
+                    type="text"
+                    placeholder="e.g., 200000"
+                    value={variablePay}
+                    onChange={(e) => handleNumberInput(e.target.value, setVariablePay, "variablePay", false, 0)}
+                  />
+                  {variablePay && parseFloat(variablePay) > 0 && (
+                    <p className="text-xs text-muted-foreground italic">
+                      {numberToWords(parseFloat(variablePay) || 0)}
+                    </p>
+                  )}
                   {errors.variablePay && (
                     <p className="text-xs text-destructive">{errors.variablePay}</p>
                   )}
-                    <select className="flex h-10 w-32 rounded-md border border-input bg-background px-3 py-2 text-sm">
-                      <option>Optional</option>
-                    </select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Paid annually, not monthly</p>
+                  <p className="text-xs text-muted-foreground">Max allowed: 15% of CTC.</p>
                 </div>
 
-                {/* Basic Salary Slider */}
+                {/* Basic Salary - Show slider even though fixed at 50% */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label>Basic Salary (% of CTC)</Label>
-                    <span className="text-sm font-semibold">{basicPercentage[0]}%</span>
+                    <Label>Basic Salary is <strong>50%</strong> of CTC</Label>
+                    <span className="text-sm font-semibold">{formatCurrency((parseFloat(ctc) || 0) * basicPercentage / 100)}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-muted-foreground w-12">30%</span>
                     <Slider
-                      value={basicPercentage}
-                      onValueChange={setBasicPercentage}
+                      value={[50]}
+                      disabled
                       min={30}
                       max={50}
                       step={1}
@@ -446,37 +480,6 @@ export default function InHandSalaryCalculator() {
                     />
                     <span className="text-xs text-muted-foreground w-12">50%</span>
                   </div>
-                </div>
-
-                {/* HRA Radio Buttons */}
-                <div className="space-y-2">
-                  <Label>HRA Component</Label>
-                  <RadioGroup value={hraOption} onValueChange={(value) => setHraOption(value as "40" | "50")}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="40" id="hra-40" />
-                      <Label htmlFor="hra-40" className="font-normal cursor-pointer">40% of Basic</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="50" id="hra-50" />
-                      <Label htmlFor="hra-50" className="font-normal cursor-pointer">50% of Basic (Metro)</Label>
-                    </div>
-                  </RadioGroup>
-                  <p className="text-xs text-muted-foreground">HRA exemption depends on rent & city (assumed max later)</p>
-                </div>
-
-                {/* Provident Fund */}
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <Label>Provident Fund (PF)</Label>
-                  <span className="text-sm">12% of Basic (Employee)</span>
-                </div>
-
-                {/* Gratuity */}
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Label>Gratuity</Label>
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <span className="text-sm">4.81% of Basic</span>
                 </div>
 
                 {/* Exemptions Toggle - Only for Old Regime */}
@@ -497,6 +500,11 @@ export default function InHandSalaryCalculator() {
                             value={section80CInput}
                             onChange={(e) => handleNumberInput(e.target.value, setSection80CInput, "section80C", false, 0, 150000)}
                           />
+                          {section80CInput && parseFloat(section80CInput) > 0 && (
+                            <p className="text-xs text-muted-foreground italic">
+                              {numberToWords(parseFloat(section80CInput) || 0)}
+                            </p>
+                          )}
                           {errors.section80C && (
                             <p className="text-xs text-destructive">{errors.section80C}</p>
                           )}
@@ -523,23 +531,21 @@ export default function InHandSalaryCalculator() {
                 )}
 
                 <div className="flex gap-3">
-                  <Button onClick={calculateSalary} className={ctc !== "1200000" || variablePay || basicPercentage[0] !== 40 || hraOption !== "50" || age !== "30" || section80CInput ? "flex-1" : "w-full"} size="lg">
+                  <Button onClick={calculateSalary} className={ctc !== "1200000" || variablePay || age !== "30" || section80CInput ? "flex-1" : "w-full"} size="lg">
                   <Calculator className="h-5 w-5 mr-2" />
-                  Calculate In-Hand Salary
+                  Calculate Salary
                 </Button>
-                  {(ctc !== "1200000" || variablePay || basicPercentage[0] !== 40 || hraOption !== "50" || age !== "30" || section80CInput) && (
+                  {(ctc !== "1200000" || variablePay || age !== "30" || section80CInput) && (
                     <Button 
                       onClick={() => {
                         setCtc("1200000");
                         setVariablePay("");
-                        setBasicPercentage([40]);
-                        setHraOption("50");
-                        setTaxRegime("old");
-                        setAge("30");
-                        setExemptionsEnabled(true);
-                        setSection80CInput("");
-                        setResult(null);
-                        setErrors({});
+                      setTaxRegime("old");
+                      setAge("30");
+                      setExemptionsEnabled(true);
+                      setSection80CInput("");
+                      setResult(null);
+                      setErrors({});
                       }}
                       variant="outline"
                       size="lg"
@@ -554,8 +560,388 @@ export default function InHandSalaryCalculator() {
               </CardContent>
             </Card>
 
-            {!result ? (
-              <Card>
+            {result && (
+              <div className="space-y-6">
+                {/* Your In-hand Salary is - Main Display (ET Money Style) */}
+                <Card className="border-primary/20">
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-2">
+                      <p className="text-sm text-muted-foreground">Your In-hand Salary is</p>
+                      <p className="text-5xl font-bold text-primary">
+                        {viewMode === "monthly" 
+                          ? "₹" + (result.netSalary / 12 / 100000).toFixed(2) + " Lacs /month"
+                          : (result.netSalary / 100000).toFixed(2) + " Lacs /year"
+                        }
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Total CTC Display */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-2">
+                      <p className="text-sm text-muted-foreground">Total CTC</p>
+                      <p className="text-2xl font-bold">{formatCurrency(result.ctc)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Mandatory Contributions */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <CardTitle>Mandatory Contributions</CardTitle>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Employee PF</span>
+                      <span className="font-semibold">{formatCurrency(result.pfEmployee)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {pfOption === "fixed" 
+                          ? "(min(12% of Monthly Basic, ₹1,800) × 12)" 
+                          : "(12% of Monthly Basic × 12)"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Employer PF</span>
+                      <span className="font-semibold">{formatCurrency(result.pfEmployer)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {pfOption === "fixed" 
+                          ? "(min(12% of Monthly Basic, ₹1,800) × 12)" 
+                          : "(12% of Monthly Basic × 12)"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Gratuity</span>
+                      <span className="font-semibold">{formatCurrency(result.gratuity)}</span>
+                      <span className="text-xs text-muted-foreground">(4.81% of Basic)</span>
+                    </div>
+                    <div className="pt-2 border-t flex justify-between font-semibold">
+                      <span>Total Mandatory Contributions</span>
+                      <span>{formatCurrency(result.pfEmployee + result.pfEmployer + result.gratuity)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Income Tax Breakdown */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <CardTitle>Income Tax ({taxRegime === "old" ? "Old" : "New"} Regime)</CardTitle>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    {taxRegime === "old" && exemptionsEnabled && (
+                      <CardDescription>Assuming maximum eligible exemptions</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Gross Salary (Yearly)</span>
+                      <span className="font-semibold">{formatCurrency(result.grossSalary)}</span>
+                    </div>
+                    {result.incomeTax > 0 ? (
+                      <>
+                        <div className="flex justify-between text-destructive">
+                          <span className="text-sm">Standard Deduction</span>
+                          <span>-{formatCurrency(result.standardDeduction)}</span>
+                        </div>
+                        <div className="flex justify-between text-destructive">
+                          <span className="text-sm">Employee PF (Yearly)</span>
+                          <span>-{formatCurrency(result.pfEmployee)}</span>
+                        </div>
+                        {taxRegime === "old" && exemptionsEnabled && (
+                          <>
+                            <div className="flex justify-between text-destructive">
+                              <span className="text-sm">80C (PPF, ELSS, etc.)</span>
+                              <span>-{formatCurrency(result.section80C)}</span>
+                            </div>
+                            <div className="flex justify-between text-destructive">
+                              <span className="text-sm">80D (Health Insurance)</span>
+                              <span>-{formatCurrency(result.section80D)}</span>
+                            </div>
+                            <div className="flex justify-between text-destructive">
+                              <span className="text-sm">HRA Exemption</span>
+                              <span>-{formatCurrency(result.hraExemption)}</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="pt-2 border-t space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Tax before Surcharge & Cess</span>
+                            <span>{formatCurrency(result.incomeTax - result.surcharge - result.cess)}</span>
+                          </div>
+                          {result.surcharge > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span>Surcharge</span>
+                              <span className="text-orange-600">{formatCurrency(result.surcharge)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm">
+                            <span>Health & Education Cess (4%)</span>
+                            <span>{formatCurrency(result.cess)}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold mt-2 pt-2 border-t">
+                            <span>Total Tax Payable</span>
+                            <span className="text-destructive">{formatCurrency(result.incomeTax)}</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p className="text-sm">No tax applicable (Gross Salary ≤ ₹12,00,000)</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Detailed Salary Breakdown (ET Money Style) */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Detailed Salary Breakdown</CardTitle>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={viewMode === "monthly" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setViewMode("monthly")}
+                        >
+                          Monthly
+                        </Button>
+                        <Button
+                          variant={viewMode === "yearly" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setViewMode("yearly")}
+                        >
+                          Yearly
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Earnings Section */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                          <span className="text-sm">Basic Salary</span>
+                        </div>
+                        <span className="font-semibold">{formatCurrency(viewMode === "monthly" ? result.basicSalary / 12 : result.basicSalary)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+                          <span className="text-sm">HRA</span>
+                        </div>
+                        <span className="font-semibold">{formatCurrency(viewMode === "monthly" ? result.hra / 12 : result.hra)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-pink-400"></div>
+                          <span className="text-sm">Special Allowance</span>
+                        </div>
+                        <span className="font-semibold">{formatCurrency(viewMode === "monthly" ? result.specialAllowance / 12 : result.specialAllowance)}</span>
+                      </div>
+                      <div className="pt-2 border-t flex justify-between items-center font-semibold">
+                        <div className="flex items-center gap-2">
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                          <span>Gross Salary</span>
+                        </div>
+                        <span>{formatCurrency(viewMode === "monthly" ? result.grossSalary / 12 : result.grossSalary)}</span>
+                      </div>
+                    </div>
+
+                    {/* Deductions Section */}
+                    <div className="pt-2 border-t space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Deductions from Salary</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+                          <span className="text-sm">EPF Contribution</span>
+                        </div>
+                        <span className="font-semibold">{formatCurrency(viewMode === "monthly" ? result.pfEmployee / 12 : result.pfEmployee)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-purple-300"></div>
+                          <span className="text-sm">Tax Payable</span>
+                        </div>
+                        <span className="font-semibold">{formatCurrency(viewMode === "monthly" ? result.incomeTax / 12 : result.incomeTax)}</span>
+                      </div>
+                      <div className="pt-2 border-t flex justify-between items-center font-semibold">
+                        <div className="flex items-center gap-2">
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                          <span>Net In-hand Salary</span>
+                        </div>
+                        <span className="text-primary text-lg">{formatCurrency(viewMode === "monthly" ? result.netSalary / 12 : result.netSalary)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Collapsible Sections - ET Money Style */}
+                {/* HRA and Rent Section */}
+                <Card>
+                  <CardHeader className="cursor-pointer" onClick={() => setHraExpanded(!hraExpanded)}>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">HRA and Rent</CardTitle>
+                      <span className="text-muted-foreground">{hraExpanded ? "−" : "+"}</span>
+                    </div>
+                  </CardHeader>
+                  {hraExpanded && (
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>City type</Label>
+                          <RadioGroup value={hraOption} onValueChange={(value) => setHraOption(value as "40" | "50")}>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="50" id="city-metro" />
+                              <Label htmlFor="city-metro" className="font-normal cursor-pointer">Metro</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="40" id="city-nonmetro" />
+                              <Label htmlFor="city-nonmetro" className="font-normal cursor-pointer">Non-Metro</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Monthly rent</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="text" 
+                              value={monthlyRent === "0" ? "₹ 0" : formatCurrency(parseFloat(monthlyRent) || 0)} 
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[₹,\s]/g, '');
+                                handleNumberInput(value, setMonthlyRent, "monthlyRent", false, 0);
+                              }}
+                              className="font-semibold flex-1"
+                            />
+                            <span className="text-xs text-muted-foreground">Optional</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Annual HRA (House Rent Allowance)</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="text" 
+                              value={annualHRA ? formatCurrency(parseFloat(annualHRA) || 0) : (result ? formatCurrency(result.hra) : "₹ 0")} 
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[₹,\s]/g, '');
+                                handleNumberInput(value, setAnnualHRA, "annualHRA", false, 0);
+                              }}
+                              className="font-semibold flex-1"
+                            />
+                            <span className="text-xs text-muted-foreground">Optional</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+
+                {/* EPF and Gratuity Section */}
+                <Card>
+                  <CardHeader className="cursor-pointer" onClick={() => setEpfExpanded(!epfExpanded)}>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">EPF and Gratuity</CardTitle>
+                      <span className="text-muted-foreground">{epfExpanded ? "−" : "+"}</span>
+                    </div>
+                  </CardHeader>
+                  {epfExpanded && (
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Monthly EPF</Label>
+                          <RadioGroup value={pfOption === "fixed" ? "fixed" : "actual"} onValueChange={(value) => setPfOption(value as "actual" | "fixed")}>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="fixed" id="pf-fixed" />
+                              <Label htmlFor="pf-fixed" className="font-normal cursor-pointer">Minimum (1800)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="actual" id="pf-actual" />
+                              <Label htmlFor="pf-actual" className="font-normal cursor-pointer">12% of the basic salary</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Annual gratuity</Label>
+                          <Input 
+                            type="text" 
+                            value={result ? formatCurrency(result.gratuity).replace('₹', '').trim() : ""} 
+                            readOnly 
+                            className="font-semibold"
+                          />
+                          <p className="text-xs text-muted-foreground">Optional</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+
+                {/* Investments Section */}
+                <Card>
+                  <CardHeader className="cursor-pointer" onClick={() => setInvestmentsExpanded(!investmentsExpanded)}>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">Investments</CardTitle>
+                      <span className="text-muted-foreground">{investmentsExpanded ? "−" : "+"}</span>
+                    </div>
+                  </CardHeader>
+                  {investmentsExpanded && (
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label>Yearly investment</Label>
+                          <span className="text-sm font-semibold">{formatCurrency(parseFloat(section80CInput) || 0)}</span>
+                        </div>
+                        <Slider
+                          value={[parseFloat(section80CInput) || 0]}
+                          onValueChange={(value) => setSection80CInput(value[0].toString())}
+                          min={0}
+                          max={150000}
+                          step={1000}
+                          className="flex-1"
+                        />
+                        <Input
+                          type="text"
+                          placeholder="0"
+                          value={section80CInput}
+                          onChange={(e) => handleNumberInput(e.target.value, setSection80CInput, "section80C", false, 0, 150000)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          You can avail deductions under various sections like 80C, 80D, 80CCD, 80E, and more.
+                        </p>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+
+                {/* Tax Savings Message */}
+                {result.taxSavings > 0 && (
+                  <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-3">
+                        <Lightbulb className="h-5 w-5 text-primary mt-0.5" />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle2 className="h-4 w-4 text-success" />
+                            <span className="font-semibold">You saved {formatCurrency(result.taxSavings)} in tax due to exemptions!</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* How It Works Section - Now appears below results */}
+            {result && (
+              <Card className="mt-6">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Info className="h-5 w-5" />
@@ -607,8 +993,8 @@ export default function InHandSalaryCalculator() {
                       <li className="leading-relaxed">
                         <strong className="text-foreground">Employee Provident Fund (EPF):</strong> 
                         <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
-                          <li>12% of Basic Salary (mandatory contribution)</li>
-                          <li>Maximum ₹1,800/month (capped at ₹15,000 basic salary as per EPFO rules)</li>
+                          <li>12% of Basic Salary (mandatory contribution) or Fixed ₹1,800/month based on your selection</li>
+                          <li>Maximum ₹1,800/month (capped at ₹15,000 basic salary as per EPFO rules) if fixed option selected</li>
                           <li>This is your retirement savings and earns tax-free interest</li>
                         </ul>
                       </li>
@@ -630,7 +1016,7 @@ export default function InHandSalaryCalculator() {
                       </li>
                       <li className="leading-relaxed">
                         <strong className="text-foreground">Income Tax:</strong> Calculated based on your selected tax regime 
-                        (Old or New) using applicable slab rates, surcharge, and cess.
+                        (Old or New) using applicable slab rates, surcharge, and cess. If Gross Salary ≤ ₹12,00,000, no tax is applicable.
                       </li>
                     </ol>
                   </div>
@@ -664,6 +1050,7 @@ export default function InHandSalaryCalculator() {
                           <li>Simplified tax structure with lower rates for income up to ₹15L</li>
                           <li>No need to maintain investment proofs</li>
                           <li>No deductions allowed (except standard deduction)</li>
+                          <li>If Gross Salary ≤ ₹12,00,000, no tax is applicable</li>
                         </ul>
                         <p className="leading-relaxed mt-3">
                           Tax is calculated using new slab rates: 0-₹3L (0%), ₹3L-₹7L (5%), ₹7L-₹10L (10%), 
@@ -676,7 +1063,7 @@ export default function InHandSalaryCalculator() {
                   <div className="p-4 bg-muted/50 rounded-lg border">
                     <h4 className="font-semibold mb-2 text-sm text-foreground">Final Calculation</h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      <strong className="text-foreground">In-Hand Salary = Gross Salary - (EPF + ESIC + Professional Tax + Income Tax)</strong>
+                      <strong className="text-foreground">Net (In-Hand) Salary = Gross Salary - (Employee PF + Tax)</strong>
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
                       This is your net take-home amount that gets credited to your bank account every month.
@@ -693,202 +1080,10 @@ export default function InHandSalaryCalculator() {
                   </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-6">
-                {/* Monthly In-Hand Salary - Main Display */}
-                <Card className="border-primary/20">
-                  <CardContent className="pt-6">
-                    <div className="text-center space-y-2">
-                      <p className="text-sm text-muted-foreground">Your Monthly In-Hand Salary</p>
-                      <p className="text-5xl font-bold text-primary">{formatCurrency(result.netSalary / 12)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        After PF and taxes as per {taxRegime === "old" ? "Old" : "New"} Tax Regime
-                        {exemptionsEnabled && taxRegime === "old" && " with assumed maximum exemptions"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* CTC Breakdown */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Your CTC Breakdown</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Total CTC</span>
-                      <span className="text-lg font-bold">{formatCurrency(result.ctc)}</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-8 bg-muted rounded-lg relative overflow-hidden">
-                        <div 
-                          className="absolute left-0 top-0 h-full bg-blue-500/80 flex items-center justify-end pr-2"
-                          style={{ width: `${(result.variablePay / result.ctc) * 100}%` }}
-                        >
-                          {result.variablePay > 0 && (
-                            <span className="text-xs text-white font-medium">
-                              {formatCurrency(result.variablePay)}
-                            </span>
-                          )}
-                        </div>
-                        <div 
-                          className="absolute right-0 top-0 h-full bg-green-500/80 flex items-center justify-start pl-2"
-                          style={{ width: `${(result.fixedPay / result.ctc) * 100}%` }}
-                        >
-                          <span className="text-xs text-white font-medium">
-                            {formatCurrency(result.fixedPay)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-4 text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded bg-blue-500/80"></div>
-                          <span>Variable Pay</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded bg-green-500/80"></div>
-                          <span>Fixed Pay</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Mandatory Contributions */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <CardTitle>Mandatory Contributions</CardTitle>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Employee PF</span>
-                      <span className="font-semibold">{formatCurrency(result.pfEmployee)}</span>
-                      <span className="text-xs text-muted-foreground">(12% of Basic, max ₹21,600)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Employer PF</span>
-                      <span className="font-semibold">{formatCurrency(result.pfEmployer)}</span>
-                      <span className="text-xs text-muted-foreground">(12% of Basic, max ₹21,600)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Gratuity</span>
-                      <span className="font-semibold">{formatCurrency(result.gratuity)}</span>
-                      <span className="text-xs text-muted-foreground">(4.81% of Basic)</span>
-                    </div>
-                    <div className="pt-2 border-t flex justify-between font-semibold">
-                      <span>Total Mandatory Contributions</span>
-                      <span>{formatCurrency(result.pfEmployee + result.pfEmployer + result.gratuity)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Salary Components */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Salary Components</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Basic</span>
-                      <span className="font-semibold">{formatCurrency(result.basicSalary)}</span>
-                      <span className="text-xs text-muted-foreground">({basicPercentage[0]}% of CTC)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">HRA</span>
-                      <span className="font-semibold">{formatCurrency(result.hra)}</span>
-                      <span className="text-xs text-muted-foreground">({hraOption}% of Basic)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Other Allowances</span>
-                      <span className="font-semibold">{formatCurrency(result.specialAllowance)}</span>
-                    </div>
-                    <div className="pt-2 border-t flex justify-between font-semibold">
-                      <span>Total Fixed Pay</span>
-                      <span>{formatCurrency(result.fixedPay)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Income Tax Breakdown */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <CardTitle>Income Tax ({taxRegime === "old" ? "Old" : "New"} Regime)</CardTitle>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    {taxRegime === "old" && exemptionsEnabled && (
-                      <CardDescription>Assuming maximum eligible exemptions</CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Gross Taxable Income</span>
-                      <span className="font-semibold">{formatCurrency(result.grossSalary)}</span>
-                    </div>
-                    <div className="flex justify-between text-destructive">
-                      <span className="text-sm">Standard Deduction</span>
-                      <span>-{formatCurrency(result.standardDeduction)}</span>
-                    </div>
-                    {taxRegime === "old" && exemptionsEnabled && (
-                      <>
-                        <div className="flex justify-between text-destructive">
-                          <span className="text-sm">80C (PPF, ELSS, etc.)</span>
-                          <span>-{formatCurrency(result.section80C)}</span>
-                        </div>
-                        <div className="flex justify-between text-destructive">
-                          <span className="text-sm">80D (Health Insurance)</span>
-                          <span>-{formatCurrency(result.section80D)}</span>
-                        </div>
-                        <div className="flex justify-between text-destructive">
-                          <span className="text-sm">HRA Exemption</span>
-                          <span>-{formatCurrency(result.hraExemption)}</span>
-                        </div>
-                      </>
-                    )}
-                    <div className="pt-2 border-t space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Tax before Surcharge & Cess</span>
-                        <span>{formatCurrency(result.incomeTax - result.surcharge - result.cess)}</span>
-                      </div>
-                      {result.surcharge > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span>Surcharge</span>
-                          <span className="text-orange-600">{formatCurrency(result.surcharge)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-sm">
-                        <span>Health & Education Cess (4%)</span>
-                        <span>{formatCurrency(result.cess)}</span>
-                      </div>
-                      <div className="flex justify-between font-semibold mt-2 pt-2 border-t">
-                        <span>Total Tax Payable</span>
-                        <span className="text-destructive">{formatCurrency(result.incomeTax)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Tax Savings Message */}
-                {result.taxSavings > 0 && (
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardContent className="pt-6">
-                      <div className="flex items-start gap-3">
-                        <Lightbulb className="h-5 w-5 text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <CheckCircle2 className="h-4 w-4 text-success" />
-                            <span className="font-semibold">You saved {formatCurrency(result.taxSavings)} in tax due to exemptions!</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
             )}
+
+            {/* Article Links Section */}
+            <ArticleLinks calculatorType="in-hand-salary" />
           </div>
         </div>
       </main>

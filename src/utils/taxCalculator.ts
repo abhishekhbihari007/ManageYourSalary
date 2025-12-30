@@ -87,28 +87,34 @@ function calculateTaxFromSlabs(income: number, slabs: typeof NEW_REGIME_SLABS): 
   let totalTax = 0;
 
   for (const slab of slabs) {
-    if (income <= slab.from) break; // Income is below this slab, no more processing needed
+    // Skip if income is below this slab's starting point
+    if (income <= slab.from) continue;
 
     // Calculate how much of this slab applies
     const slabStart = slab.from;
-    const slabEnd = slab.to === Infinity ? income : Math.min(slab.to, income);
+    const slabEnd = slab.to === Infinity ? income : slab.to;
     
-    // Calculate the amount in this slab
-    const slabAmount = slabEnd - slabStart + 1;
+    // Calculate the taxable amount in this slab
+    // Indian tax slabs: "from 300001 to 700000" means income from ₹3,00,001 to ₹7,00,000 (inclusive)
+    // For income ₹5,00,000: taxable = 5,00,000 - 3,00,000 = 2,00,000
+    // Formula: taxable = min(income, slabEnd) - (slabStart - 1)
+    const upperBound = Math.min(income, slabEnd);
+    const lowerBound = slabStart - 1; // "from 300001" means above 300000
+    const taxableInSlab = Math.max(0, upperBound - lowerBound);
     
-    if (slabAmount > 0) {
-      const slabTax = slabAmount * slab.rate;
+    if (taxableInSlab > 0 && slab.rate > 0) {
+      const slabTax = taxableInSlab * slab.rate;
       
       breakdown.push({
         from: slabStart,
-        to: slabEnd,
+        to: slabEnd === Infinity ? income : slabEnd,
         rate: slab.rate * 100, // Convert to percentage
         tax: Math.round(slabTax),
       });
       totalTax += slabTax;
       
-      // If we've reached the income limit, stop
-      if (slabEnd >= income) break;
+      // If we've processed all income, stop
+      if (slabEnd >= income || slab.to === Infinity) break;
     }
   }
 

@@ -6,15 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function EPFCalculator() {
   const [basicSalary, setBasicSalary] = useState<string>("");
   const [currentAge, setCurrentAge] = useState<string>("25");
   const [retirementAge, setRetirementAge] = useState<string>("60");
   const [currentBalance, setCurrentBalance] = useState<string>("0");
+  const [pfOption, setPfOption] = useState<"actual" | "fixed">("actual"); // PF toggle: actual 12% or fixed ₹1,800
+  const [vpfEnabled, setVpfEnabled] = useState<boolean>(false); // VPF toggle
+  const [vpfAmount, setVpfAmount] = useState<string>("0"); // VPF amount (monthly)
   const [result, setResult] = useState<{
     monthlyContribution: number;
     employeeContribution: number;
@@ -25,6 +30,7 @@ export default function EPFCalculator() {
     yearlyBreakdown: Array<{ year: number; balance: number }>;
     monthlyEmployeeContribution: number;
     monthlyEmployerContribution: number;
+    vpfContribution?: number;
   } | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -94,9 +100,26 @@ export default function EPFCalculator() {
 
     const years = retirement - current;
     const monthlyBasic = basic / 12;
-    const employeeContribution = Math.min(monthlyBasic * 0.12, 1800);
-    const employerContribution = Math.min(monthlyBasic * 0.12, 1800);
-    const monthlyContribution = employeeContribution + employerContribution;
+    
+    // PF calculation based on toggle option
+    let employeeContribution: number;
+    let employerContribution: number;
+    
+    if (pfOption === "fixed") {
+      // Fixed ₹1,800/month (₹21,600/year) - applies when basic >= ₹15,000/month
+      employeeContribution = monthlyBasic >= 15000 ? 1800 : monthlyBasic * 0.12;
+      employerContribution = monthlyBasic >= 15000 ? 1800 : monthlyBasic * 0.12;
+    } else {
+      // Actual 12% of Basic (no cap)
+      employeeContribution = monthlyBasic * 0.12;
+      employerContribution = monthlyBasic * 0.12;
+    }
+    
+    // VPF (Voluntary Provident Fund) - additional contribution
+    const vpfMonthly = vpfEnabled ? Math.max(0, Math.min(parseFloat(vpfAmount) || 0, monthlyBasic * 0.88)) : 0; // Max 88% of basic (since 12% is already PF)
+    const vpfAnnual = vpfMonthly * 12;
+    
+    const monthlyContribution = employeeContribution + employerContribution + vpfMonthly;
     const annualEmployeeContribution = employeeContribution * 12;
     const annualEmployerContribution = employerContribution * 12;
     const annualContribution = monthlyContribution * 12;
@@ -106,10 +129,18 @@ export default function EPFCalculator() {
     let finalBalance = balance;
     const yearlyBreakdown = [];
 
+    // Growth starts from current age
+    // First entry shows balance at current age (before any contributions)
+    yearlyBreakdown.push({
+      year: current,
+      balance: balance,
+    });
+    
     for (let year = 1; year <= years; year++) {
       for (let month = 1; month <= 12; month++) {
         finalBalance = finalBalance * (1 + monthlyRate) + monthlyContribution;
       }
+      // Year in breakdown shows age after each year of contributions
       yearlyBreakdown.push({
         year: current + year,
         balance: finalBalance,
@@ -128,6 +159,7 @@ export default function EPFCalculator() {
       yearlyBreakdown,
       monthlyEmployeeContribution: employeeContribution,
       monthlyEmployerContribution: employerContribution,
+      vpfContribution: vpfAnnual,
     });
   };
 
@@ -183,7 +215,94 @@ export default function EPFCalculator() {
                   {errors.basicSalary && (
                     <p className="text-xs text-destructive">{errors.basicSalary}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">EPF is calculated as 12% of Basic Salary, capped at ₹15,000 basic (₹1,800/month contribution)</p>
+                </div>
+
+                {/* PF Contribution Options Toggle */}
+                <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <Label>PF Contribution</Label>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs ${pfOption === "actual" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                        Actual 12%
+                      </span>
+                      <Switch
+                        checked={pfOption === "fixed"}
+                        onCheckedChange={(checked) => setPfOption(checked ? "fixed" : "actual")}
+                      />
+                      <span className={`text-xs ${pfOption === "fixed" ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                        Max ₹1,800
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {pfOption === "actual" 
+                      ? "12% of Basic Salary (no cap)" 
+                      : "Fixed ₹1,800/month (₹21,600/year) - capped at ₹15,000 basic"}
+                  </p>
+                </div>
+
+                {/* VPF Toggle */}
+                <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <Label>VPF (Voluntary Provident Fund)</Label>
+                    <Switch
+                      checked={vpfEnabled}
+                      onCheckedChange={setVpfEnabled}
+                    />
+                  </div>
+                  {vpfEnabled && (
+                    <div className="space-y-2">
+                      <Label htmlFor="vpf">Monthly VPF Amount (₹)</Label>
+                      <Input
+                        id="vpf"
+                        type="text"
+                        placeholder="0"
+                        value={vpfAmount}
+                        onChange={(e) => {
+                          const basicValue = parseFloat(basicSalary) || 0;
+                          const monthlyBasic = basicValue / 12;
+                          const maxVPF = monthlyBasic * 0.88; // Max 88% of basic (since 12% is already PF)
+                          const minVPF = 0;
+                          const inputValue = e.target.value;
+                          
+                          if (inputValue === "") {
+                            setVpfAmount("");
+                            setErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.vpfAmount;
+                              return newErrors;
+                            });
+                            return;
+                          }
+                          
+                          if (!/^\d*\.?\d*$/.test(inputValue)) {
+                            return;
+                          }
+                          
+                          const numVal = parseFloat(inputValue) || 0;
+                          if (numVal > maxVPF && basicValue > 0) {
+                            setVpfAmount(maxVPF.toString());
+                            setErrors(prev => ({ ...prev, vpfAmount: `Maximum VPF is ₹${Math.round(maxVPF).toLocaleString('en-IN')} (88% of Basic Salary)` }));
+                          } else if (numVal < minVPF) {
+                            setVpfAmount("0");
+                          } else {
+                            setVpfAmount(inputValue);
+                            setErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.vpfAmount;
+                              return newErrors;
+                            });
+                          }
+                        }}
+                      />
+                      {errors.vpfAmount && (
+                        <p className="text-xs text-destructive">{errors.vpfAmount}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Minimum: ₹0 | Maximum: ₹{basicSalary ? Math.round((parseFloat(basicSalary) / 12) * 0.88).toLocaleString('en-IN') : "0"} (88% of Basic Salary). VPF earns same interest as EPF.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -240,6 +359,9 @@ export default function EPFCalculator() {
                         setCurrentAge("25");
                         setRetirementAge("60");
                         setCurrentBalance("0");
+                        setPfOption("actual");
+                        setVpfEnabled(false);
+                        setVpfAmount("0");
                         setResult(null);
                         setErrors({});
                       }}
@@ -369,13 +491,24 @@ export default function EPFCalculator() {
                     <div className="flex justify-between items-center py-2 border-b">
                       <span className="text-sm font-medium">Employee PF (Monthly)</span>
                       <span className="font-semibold">{formatCurrency(result.monthlyEmployeeContribution)}</span>
-                      <span className="text-xs text-muted-foreground">(12% of Basic, max ₹1,800)</span>
+                      <span className="text-xs text-muted-foreground">
+                        {pfOption === "actual" ? "(12% of Basic)" : "(Fixed ₹1,800)"}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b">
                       <span className="text-sm font-medium">Employer PF (Monthly)</span>
                       <span className="font-semibold">{formatCurrency(result.monthlyEmployerContribution)}</span>
-                      <span className="text-xs text-muted-foreground">(12% of Basic, max ₹1,800)</span>
+                      <span className="text-xs text-muted-foreground">
+                        {pfOption === "actual" ? "(12% of Basic)" : "(Fixed ₹1,800)"}
+                      </span>
                     </div>
+                    {result.vpfContribution && result.vpfContribution > 0 && (
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <span className="text-sm font-medium">VPF (Monthly)</span>
+                        <span className="font-semibold">{formatCurrency(result.vpfContribution / 12)}</span>
+                        <span className="text-xs text-muted-foreground">(Voluntary contribution)</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center py-2 border-b">
                       <span className="text-sm font-medium">Total Monthly Contribution</span>
                       <span className="font-semibold">{formatCurrency(result.monthlyContribution)}</span>
@@ -400,9 +533,9 @@ export default function EPFCalculator() {
 
                   {result.yearlyBreakdown.length > 0 && (
                     <div className="pt-4 border-t">
-                      <h3 className="text-sm font-semibold mb-3">Yearly Growth</h3>
+                      <h3 className="text-sm font-semibold mb-3">Yearly Growth (Starting from Age {currentAge})</h3>
                       <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {result.yearlyBreakdown.slice(-10).map((item) => (
+                        {result.yearlyBreakdown.map((item) => (
                           <div key={item.year} className="flex justify-between items-center text-sm">
                             <span>Age {item.year}</span>
                             <span className="font-medium">{formatCurrency(item.balance)}</span>
@@ -414,6 +547,9 @@ export default function EPFCalculator() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Article Links Section */}
+            <ArticleLinks calculatorType="epf" />
           </div>
         </div>
       </main>

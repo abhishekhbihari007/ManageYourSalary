@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 interface Offer {
   ctc: number;
@@ -24,8 +25,9 @@ export default function OfferAnalyzer() {
   const [offers, setOffers] = useState<Offer[]>([
     { ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 1" },
     { ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 2" },
-    { ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 3" },
   ]);
+  const [offer3, setOffer3] = useState<Offer>({ ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 3" });
+  const [showOffer3, setShowOffer3] = useState<boolean>(false); // Offer 3 hidden by default
   const [result, setResult] = useState<Array<{
     offer: Offer;
     inHand: number;
@@ -125,16 +127,19 @@ export default function OfferAnalyzer() {
     setResult(null);
 
     // STRICT VALIDATION - Policy Guardrails
+    // Combine offers with offer3 if shown
+    const allOffers = showOffer3 ? [...offers, offer3] : offers;
+    
     // Rule 1: At least one offer must have valid CTC
-    const validOffers = offers.filter(o => o.ctc > 0);
+    const validOffers = allOffers.filter(o => o.ctc > 0);
     if (validOffers.length === 0) {
       setErrors({ general: "Please enter at least one valid offer with CTC greater than ₹0." });
       return;
     }
 
     // Rule 2: Validate each offer
-    for (let i = 0; i < offers.length; i++) {
-      const offer = offers[i];
+    for (let i = 0; i < allOffers.length; i++) {
+      const offer = allOffers[i];
       if (offer.ctc > 0) {
         // Rule 2a: CTC must be positive
         if (offer.ctc <= 0) {
@@ -176,12 +181,43 @@ export default function OfferAnalyzer() {
   const updateOffer = (index: number, field: keyof Offer, value: string | number) => {
     const updated = [...offers];
     if (typeof value === "string") {
-      const numValue = parseFloat(value) || 0;
-      updated[index] = { ...updated[index], [field]: numValue };
+      // Only allow numbers and decimal point
+      if (value !== "" && !/^\d*\.?\d*$/.test(value)) {
+        return; // Don't update if invalid input
+      }
+      // Allow empty string for editing, convert to number when not empty
+      if (value === "") {
+        updated[index] = { ...updated[index], [field]: 0 };
+      } else {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          updated[index] = { ...updated[index], [field]: numValue };
+        }
+      }
     } else {
       updated[index] = { ...updated[index], [field]: value };
     }
     setOffers(updated);
+  };
+
+  const updateOffer3 = (field: keyof Offer, value: string | number) => {
+    if (typeof value === "string") {
+      // Only allow numbers and decimal point
+      if (value !== "" && !/^\d*\.?\d*$/.test(value)) {
+        return; // Don't update if invalid input
+      }
+      // Allow empty string for editing, convert to number when not empty
+      if (value === "") {
+        setOffer3({ ...offer3, [field]: 0 });
+      } else {
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          setOffer3({ ...offer3, [field]: numValue });
+        }
+      }
+    } else {
+      setOffer3({ ...offer3, [field]: value });
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -225,22 +261,90 @@ export default function OfferAnalyzer() {
                 <CardDescription>Compare up to 3 offers side by side</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {offers.map((offer, index) => (
-                  <div key={index} className="p-4 border rounded-lg space-y-4">
-                    <Label className="text-lg font-semibold">{offer.name}</Label>
+                {/* Offer 1 and Offer 2 - Always visible, side-by-side on desktop */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  {offers.slice(0, 2).map((offer, index) => (
+                    <div key={index} className="p-4 border rounded-lg space-y-4">
+                      <Label className="text-lg font-semibold">{offer.name}</Label>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <Label>CTC (₹)</Label>
+                          <Input
+                            type="text"
+                            value={offer.ctc || ""}
+                            onChange={(e) => updateOffer(index, "ctc", e.target.value)}
+                            placeholder="e.g., 1500000"
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Basic %</Label>
+                            <Input
+                              type="text"
+                              value={offer.basicPercentage === 0 ? "" : offer.basicPercentage}
+                              onChange={(e) => updateOffer(index, "basicPercentage", e.target.value)}
+                              placeholder="40"
+                            />
+                          </div>
+                          <div>
+                            <Label>HRA %</Label>
+                            <Input
+                              type="text"
+                              value={offer.hraPercentage === 0 ? "" : offer.hraPercentage}
+                              onChange={(e) => updateOffer(index, "hraPercentage", e.target.value)}
+                              placeholder="50"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label>Variable Pay (₹)</Label>
+                          <Input
+                            type="text"
+                            value={offer.variablePay || ""}
+                            onChange={(e) => updateOffer(index, "variablePay", e.target.value)}
+                            placeholder="Annual variable"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Joining Bonus (₹)</Label>
+                          <Input
+                            type="text"
+                            value={offer.joiningBonus || ""}
+                            onChange={(e) => updateOffer(index, "joiningBonus", e.target.value)}
+                            placeholder="One-time bonus"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>ESOP Value (₹)</Label>
+                          <Input
+                            type="text"
+                            value={offer.esop || ""}
+                            onChange={(e) => updateOffer(index, "esop", e.target.value)}
+                            placeholder="Estimated ESOP value"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Offer 3 - Hidden by default, appears below on click */}
+                {showOffer3 && (
+                  <div className="p-4 border rounded-lg space-y-4">
+                    <Label className="text-lg font-semibold">{offer3.name}</Label>
                     
                     <div className="space-y-3">
                       <div>
                         <Label>CTC (₹)</Label>
                         <Input
                           type="text"
-                          value={offer.ctc || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                              updateOffer(index, "ctc", value === "" ? 0 : parseFloat(value) || 0);
-                            }
-                          }}
+                          value={offer3.ctc || ""}
+                          onChange={(e) => updateOffer3("ctc", e.target.value)}
                           placeholder="e.g., 1500000"
                         />
                       </div>
@@ -250,26 +354,18 @@ export default function OfferAnalyzer() {
                           <Label>Basic %</Label>
                           <Input
                             type="text"
-                            value={offer.basicPercentage}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                                updateOffer(index, "basicPercentage", value === "" ? 40 : parseFloat(value) || 40);
-                              }
-                            }}
+                            value={offer3.basicPercentage === 0 ? "" : offer3.basicPercentage}
+                            onChange={(e) => updateOffer3("basicPercentage", e.target.value)}
+                            placeholder="40"
                           />
                         </div>
                         <div>
                           <Label>HRA %</Label>
                           <Input
                             type="text"
-                            value={offer.hraPercentage}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                                updateOffer(index, "hraPercentage", value === "" ? 50 : parseFloat(value) || 50);
-                              }
-                            }}
+                            value={offer3.hraPercentage === 0 ? "" : offer3.hraPercentage}
+                            onChange={(e) => updateOffer3("hraPercentage", e.target.value)}
+                            placeholder="50"
                           />
                         </div>
                       </div>
@@ -278,13 +374,8 @@ export default function OfferAnalyzer() {
                         <Label>Variable Pay (₹)</Label>
                         <Input
                           type="text"
-                          value={offer.variablePay || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                              updateOffer(index, "variablePay", value === "" ? 0 : parseFloat(value) || 0);
-                            }
-                          }}
+                          value={offer3.variablePay || ""}
+                          onChange={(e) => updateOffer3("variablePay", e.target.value)}
                           placeholder="Annual variable"
                         />
                       </div>
@@ -293,13 +384,8 @@ export default function OfferAnalyzer() {
                         <Label>Joining Bonus (₹)</Label>
                         <Input
                           type="text"
-                          value={offer.joiningBonus || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                              updateOffer(index, "joiningBonus", value === "" ? 0 : parseFloat(value) || 0);
-                            }
-                          }}
+                          value={offer3.joiningBonus || ""}
+                          onChange={(e) => updateOffer3("joiningBonus", e.target.value)}
                           placeholder="One-time bonus"
                         />
                       </div>
@@ -308,19 +394,25 @@ export default function OfferAnalyzer() {
                         <Label>ESOP Value (₹)</Label>
                         <Input
                           type="text"
-                          value={offer.esop || ""}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                              updateOffer(index, "esop", value === "" ? 0 : parseFloat(value) || 0);
-                            }
-                          }}
+                          value={offer3.esop || ""}
+                          onChange={(e) => updateOffer3("esop", e.target.value)}
                           placeholder="Estimated ESOP value"
                         />
                       </div>
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Add Offer 3 Button */}
+                {!showOffer3 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowOffer3(true)}
+                    className="w-full"
+                  >
+                    Add Offer 3
+                  </Button>
+                )}
                 
                 {errors.general && (
                   <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -332,14 +424,15 @@ export default function OfferAnalyzer() {
                     <Scale className="h-4 w-4 mr-2" />
                     Compare Offers
                   </Button>
-                  {offers.some(o => o.ctc > 0 || o.variablePay > 0 || o.joiningBonus > 0 || o.esop > 0 || o.basicPercentage !== 40 || o.hraPercentage !== 50) && (
+                  {(offers.some(o => o.ctc > 0 || o.variablePay > 0 || o.joiningBonus > 0 || o.esop > 0 || o.basicPercentage !== 40 || o.hraPercentage !== 50) || (showOffer3 && (offer3.ctc > 0 || offer3.variablePay > 0 || offer3.joiningBonus > 0 || offer3.esop > 0 || offer3.basicPercentage !== 40 || offer3.hraPercentage !== 50))) && (
                     <Button 
                       onClick={() => {
                         setOffers([
                           { ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 1" },
                           { ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 2" },
-                          { ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 3" },
                         ]);
+                        setOffer3({ ctc: 0, basicPercentage: 40, hraPercentage: 50, variablePay: 0, joiningBonus: 0, esop: 0, name: "Offer 3" });
+                        setShowOffer3(false);
                         setResult(null);
                         setErrors({});
                       }}
@@ -465,6 +558,9 @@ export default function OfferAnalyzer() {
               </Card>
             )}
           </div>
+
+          {/* Article Links Section */}
+          <ArticleLinks calculatorType="offer-analyzer" />
         </div>
       </main>
       <Footer />

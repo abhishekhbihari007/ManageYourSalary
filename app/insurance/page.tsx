@@ -178,6 +178,135 @@ export default function InsurancePage() {
             </CardContent>
           </Card>
 
+          {/* Why Insurance Planning Matters */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Why Insurance Planning Matters</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Insurance planning helps protect you and your family from unexpected financial risks such as medical emergencies, accidents, loss of income, or damage to property. Without adequate insurance, even a single unforeseen event can disrupt long-term financial goals and savings. Proper insurance planning ensures financial stability, peace of mind, and the ability to handle emergencies without relying on loans or selling assets.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Which Insurance Do You Need */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Which Insurance Do You Need?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Choosing the right insurance depends on your life stage, income, and responsibilities. Not everyone needs every type of insurance, but having the right mix is important.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <h3 className="font-semibold mb-2 text-sm text-foreground">For Salaried Individuals</h3>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Life Insurance (term plan for income protection)</li>
+                    <li>Health Insurance (individual or employer + personal cover)</li>
+                    <li>Motor Insurance (mandatory if you own a vehicle)</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <h3 className="font-semibold mb-2 text-sm text-foreground">For Families</h3>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Life Insurance with higher coverage</li>
+                    <li>Family floater health insurance</li>
+                    <li>Home insurance if you own a house</li>
+                  </ul>
+                </div>
+
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <h3 className="font-semibold mb-2 text-sm text-foreground">For Self-Employed or Freelancers</h3>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <li>Health insurance with a top-up plan</li>
+                    <li>Term life insurance</li>
+                    <li>Optional income protection plans</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Common Insurance Mistakes to Avoid */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Common Insurance Mistakes to Avoid</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                Many people buy insurance without proper understanding. Avoid these common mistakes:
+              </p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <span>Buying insurance only for tax savings</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <span>Choosing very low coverage to reduce premiums</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <span>Relying only on employer-provided health insurance</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <span>Not reviewing or updating policies after major life events</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                  <span>Ignoring policy exclusions and claim conditions</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* How Much Insurance Coverage Is Enough */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>How Much Insurance Coverage Is Enough?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Having insurance is important, but having adequate coverage matters even more.
+              </p>
+              
+              <div className="space-y-3">
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <h3 className="font-semibold mb-2 text-sm text-foreground">Life Insurance:</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Coverage should be around 10–20 times your annual income to support your family&apos;s future expenses.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <h3 className="font-semibold mb-2 text-sm text-foreground">Health Insurance:</h3>
+                  <p className="text-sm text-muted-foreground">
+                    At least ₹5–10 lakh for individuals and ₹10–20 lakh for families, depending on city and medical costs.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <h3 className="font-semibold mb-2 text-sm text-foreground">Home Insurance:</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Coverage should match the full reconstruction value of your property, not the market price.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <h3 className="font-semibold mb-2 text-sm text-foreground">Motor Insurance:</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A comprehensive policy along with mandatory third-party coverage is recommended for better protection.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Important Tips */}
           <Card>
             <CardHeader>

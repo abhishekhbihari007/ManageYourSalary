@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ArticleLinks from "@/components/sections/ArticleLinks";
 
 export default function NPSCalculator() {
   const [employeeContribution, setEmployeeContribution] = useState<string>("5000");
@@ -485,6 +486,9 @@ export default function NPSCalculator() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Article Links Section */}
+            <ArticleLinks calculatorType="nps" />
           </div>
         </div>
       </main>
