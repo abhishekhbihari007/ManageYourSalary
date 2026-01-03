@@ -185,7 +185,7 @@ export default function BlogPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-background to-muted/20 pt-16">
+      <main className="flex-1 bg-gradient-to-b from-background to-muted/20">
         <div className="container py-8 md:py-12">
           <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -193,7 +193,7 @@ export default function BlogPage() {
           </Link>
 
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-4">Financial Planning Blog</h1>
+            <h1 className="text-4xl font-bold text-foreground mb-4">Beginner's Guide</h1>
             <p className="text-xl text-muted-foreground">
               Expert tips, guides, and insights to help you manage your salary and build wealth
             </p>

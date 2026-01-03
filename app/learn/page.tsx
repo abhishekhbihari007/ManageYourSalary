@@ -208,7 +208,7 @@ export default function LearnPage() {
             {/* Blog Section */}
             <section>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold">Latest Articles</h2>
+                <h2 className="text-3xl font-bold">Beginner's Guide</h2>
                 <Link href="/blog" className="text-primary hover:underline text-sm font-medium">
                   View All →
                 </Link>

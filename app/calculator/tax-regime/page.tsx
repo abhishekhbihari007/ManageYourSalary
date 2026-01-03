@@ -225,26 +225,6 @@ export default function TaxRegimePicker() {
             </div>
           </div>
 
-          {/* Tax Regime Tabs */}
-          <div className="mb-6">
-            <Tabs value={taxRegime} onValueChange={(value) => {
-              setTaxRegime(value as "old" | "new");
-              setResult(null); // Clear results when switching tabs
-            }}>
-              <TabsList className="grid w-full max-w-md grid-cols-2 gap-1">
-                <TabsTrigger value="old" className="flex items-center gap-2 text-xs sm:text-sm">
-                  {taxRegime === "old" && <CheckCircle2 className="h-4 w-4" />}
-                  Old Regime
-                </TabsTrigger>
-                <TabsTrigger value="new" className="flex items-center gap-2">
-                  {taxRegime === "new" && <CheckCircle2 className="h-4 w-4" />}
-                  New Regime
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <p className="text-xs text-muted-foreground mt-2">You can switch regimes anytime to compare results</p>
-          </div>
-
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
@@ -252,6 +232,32 @@ export default function TaxRegimePicker() {
                 <CardDescription>Provide your income and deduction details</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Tax Regime Tabs - Inside Card */}
+                <div className="mb-4 w-full">
+                  <Tabs value={taxRegime} onValueChange={(value) => {
+                    const newRegime = value as "old" | "new";
+                    setTaxRegime(newRegime);
+                    // Recalculate immediately if we have results already
+                    if (result && annualIncome && parseFloat(annualIncome) > 0) {
+                      // Use setTimeout to ensure state update happens first
+                      setTimeout(() => {
+                        calculateTax();
+                      }, 0);
+                    }
+                  }}>
+                    <TabsList className="grid w-full grid-cols-2 gap-1">
+                      <TabsTrigger value="old" className="flex items-center gap-2 text-xs sm:text-sm">
+                        {taxRegime === "old" && <CheckCircle2 className="h-4 w-4" />}
+                        Old Regime
+                      </TabsTrigger>
+                      <TabsTrigger value="new" className="flex items-center gap-2 text-xs sm:text-sm">
+                        {taxRegime === "new" && <CheckCircle2 className="h-4 w-4" />}
+                        New Regime
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <p className="text-xs text-muted-foreground mt-2">You can switch regimes anytime to compare results</p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="income">Annual Gross Income (₹) *</Label>
                   <Input
@@ -503,12 +509,13 @@ export default function TaxRegimePicker() {
                           <li className="leading-relaxed">
                             <strong className="text-foreground">Apply Tax Slabs:</strong> Tax is calculated progressively using these rates:
                             <ul className="list-disc list-inside ml-4 mt-2 space-y-1 bg-muted/30 p-2 rounded">
-                              <li><strong>₹0 - ₹3L:</strong> 0%</li>
-                              <li><strong>₹3,00,001 - ₹6L:</strong> 5%</li>
-                              <li><strong>₹6,00,001 - ₹9L:</strong> 10%</li>
-                              <li><strong>₹9,00,001 - ₹12L:</strong> 15%</li>
-                              <li><strong>₹12,00,001 - ₹15L:</strong> 20%</li>
-                              <li><strong>Above ₹15L:</strong> 30%</li>
+                              <li><strong>0 - ₹3L:</strong> 0%</li>
+                              <li><strong>₹3L - ₹7L:</strong> 5%</li>
+                              <li><strong>₹7L - ₹10L:</strong> 10%</li>
+                              <li><strong>₹10L - ₹12L:</strong> 15%</li>
+                              <li><strong>₹12L - ₹15L:</strong> 20%</li>
+                              <li><strong>₹15L - ₹20L:</strong> 25%</li>
+                              <li><strong>Above ₹20L:</strong> 30%</li>
                             </ul>
                           </li>
                           <li className="leading-relaxed">

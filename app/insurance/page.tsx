@@ -33,7 +33,9 @@ export default function InsurancePage() {
           </div>
 
           {/* Insurance Types */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-6">Types</h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center gap-3 mb-2">
@@ -145,38 +147,8 @@ export default function InsurancePage() {
                 </ul>
               </CardContent>
             </Card>
+            </div>
           </div>
-
-          {/* Coverage Calculator Info */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>How Much Coverage Do You Need?</CardTitle>
-              <CardDescription>General guidelines for insurance planning</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                    Life Insurance Coverage
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Calculate as: (Annual Income × Years until retirement) + Outstanding Debts - Existing Assets
-                  </p>
-                  <p className="text-sm font-medium mt-2">Example: ₹10L income × 30 years = ₹3 Crores coverage</p>
-                </div>
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-primary" />
-                    Health Insurance Coverage
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Minimum ₹5 lakhs for individuals, ₹10 lakhs for families. Consider top-up plans for higher coverage.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Why Insurance Planning Matters */}
           <Card className="mb-8">
@@ -308,7 +280,7 @@ export default function InsurancePage() {
           </Card>
 
           {/* Important Tips */}
-          <Card>
+          <Card className="mb-8">
             <CardHeader>
               <CardTitle>Insurance Planning Tips</CardTitle>
             </CardHeader>
@@ -342,6 +314,50 @@ export default function InsurancePage() {
                     <p className="text-sm text-muted-foreground">Understand exclusions and claim procedures</p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Protection Planning Tools */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Protection Planning Tools</CardTitle>
+              <CardDescription>Use our calculators to determine your insurance needs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Link href="/calculator/term-insurance">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardHeader>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-destructive/10">
+                          <Shield className="h-6 w-6 text-destructive" />
+                        </div>
+                        <CardTitle>Term Insurance Calculator</CardTitle>
+                      </div>
+                      <CardDescription>Calculate how much term insurance coverage you need based on your income, expenses, and financial goals.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button className="w-full">Calculate Term Insurance</Button>
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link href="/calculator/health-insurance">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                    <CardHeader>
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                          <Heart className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle>Health Insurance Calculator</CardTitle>
+                      </div>
+                      <CardDescription>Determine the right health insurance coverage amount for you and your family based on medical costs and needs.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button className="w-full">Calculate Health Insurance</Button>
+                    </CardContent>
+                  </Card>
+                </Link>
               </div>
             </CardContent>
           </Card>
